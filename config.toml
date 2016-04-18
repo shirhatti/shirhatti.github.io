@@ -1,0 +1,28 @@
+baseurl = "http://blog.shirhatti.com/"
+languageCode = "en-us"
+title = "Shirhatti"
+disqusShortname = "shirhatti"
+paginate = 10
+theme = "hyde-x"
+
+[author]
+    name = "Sourabh Shirhatti"
+
+[permalinks]
+    post = "/blog/:year/:month/:day/:title/"
+
+[taxonomies]
+    category = "categories"
+
+[params]
+    # Sidebar social links.
+    github = "https://github.com/shirhatti"
+    twitter = "https://twitter.com/sshirhatti"
+
+    highlight = "solarized_light"
+
+    tagline = "PM @ [Microsoft](https://www.microsoft.com/)<br />[UT Austin](https://www.utexas.edu/) Alumni<br />Bengaluru native"
+
+    googleAnalytics = "UA-73348939-1"
+
+    gravatarHash = "010f20d07201bcb144d45f288276ec72"
