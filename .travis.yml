@@ -1,0 +1,12 @@
+sudo: false
+install: ./install.sh
+script: ./hugo
+branches:
+  only: dev
+deploy:
+  skip_cleanup: true
+  provider: script
+  script: echo "Deploy not yet implemented"
+env:
+  global:
+    secure: M8pDCvirYui1gO7rMXJPecEtWl/cY0aD7VOaAEF8EWq0Jpt/ucb1IJYmIMB2JWIIL1a2pH/rcCMsfv76u/Qkrjg4ejR4wVHS5xGsAfcGGqOIu+ZbS0P3a+yR4zGeedcWVuMVM04aeXjwW7/NHM+t6HYrplE5cNM/x9UfLVqlPOzC2ds1PfdjeAIWtSSy3MrLk3Ut24kG5p58XEfDGfDtf6obKHPx2N+W6jULlorAYm4kNbmey9gW+vcDU/0bnqxb3te0NY2GUlTWbqIIVX8EZ5MKaUu4AJkfkLyhqBGz27x2i5UarNL3AMEBLItilizpJBdHTJz0i8q+Zo1s2hS8SuolISx6Eyon4anTmCRtbfIjatmCLJM8BB/1jnvI+aAcvqqhVi69f9OgNi2nhs9nbgi2hcRLcgQ8RpV110EngcaSPgLJkvSANRgVqK/tpk9z7KDjRU/tLdfFkUAb8eX14zX8Ng5qiBoowFqNnAz2c5vzfEued+Q8Yars6XbB1gaMEvHOJFMpi5f4Uzai7z0x9PaCFz/U/idS3rLSvtKJEL+aer7es1+TF1zGnVlR3Aw3G4WPTwABQbybh3qB3+63VW0EScZ2FnB2DmTidHSzdeA+3tUh4UV4Qmd4q/ePeNwYwhJPIpyQSQe3x266a0BYvY2K2lKXBSbuQTQR/9Qy3KE=
