@@ -7,7 +7,7 @@ branches:
 deploy:
   skip_cleanup: true
   provider: script
-  script: echo "Deploy not yet implemented"
+  script: ./deploy.sh
   on:
     branch: dev
 env:
