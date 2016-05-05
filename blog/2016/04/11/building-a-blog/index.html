@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+<head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>Building a Blog &middot; Sourabh Shirhatti</title>
+
+  
+  <link rel="stylesheet" href="https://shirhatti.com/css/poole.css">
+  <link rel="stylesheet" href="https://shirhatti.com/css/hyde.css">
+  <link rel="stylesheet" href="https://shirhatti.com/css/poole-overrides.css">
+  <link rel="stylesheet" href="https://shirhatti.com/css/hyde-overrides.css">
+  <link rel="stylesheet" href="https://shirhatti.com/css/hyde-x.css">
+  <link rel="stylesheet" href="https://shirhatti.com/css/highlight/solarized_light.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+  
+
+  
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://shirhatti.com/touch-icon-144-precomposed.png">
+  <link href="https://shirhatti.com/favicon.png" rel="icon">
+
+  
+  
+  
+  
+
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+  
+  <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+    ga('create', 'UA-73348939-1', 'auto');
+    ga('send', 'pageview');
+  </script>
+  
+</head>
+<body>
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      
+        <img src="https://www.gravatar.com/avatar/010f20d07201bcb144d45f288276ec72?s=200"
+             alt="gravatar" title="Sourabh Shirhatti">
+      
+      <h1>Sourabh Shirhatti</h1>
+      <p class="lead">PM @ <a href="https://www.microsoft.com/">Microsoft</a><br /><a href="https://www.utexas.edu/">UT Austin</a> Alumni<br />Bengaluru native</p>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item"><a href="https://shirhatti.com/">Blog</a></li>
+      
+    </ul>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item">
+      <a href="https://github.com/shirhatti"><i class="fa fa-github-square fa-3x"></i></a>
+      
+      
+      
+      
+      
+      <a href="https://twitter.com/sshirhatti"><i class="fa fa-twitter-square fa-3x"></i></a>
+      
+      
+      </li>
+    </ul>
+
+    
+
+    <p>Copyright &copy; 2016<br/>
+       Powered by <a href="http://gohugo.io">Hugo</a> and <a href="https://github.com/zyro/hyde-x">Hyde-X</a></p>
+  </div>
+</div>
+
+
+<div class="content container">
+  <div class="post">
+    <h1 class="post-title">Building a Blog</h1>
+    <span class="post-date">Apr 11, 2016 &middot; 4 minute read &middot; <a href="https://shirhatti.com/blog/2016/04/11/building-a-blog/#disqus_thread">Comments</a>
+    
+    <br/>
+    <a class="label" href="https://shirhatti.com/categories/blog">blog</a>
+    </span>
+    
+
+<p>I&rsquo;ve been contemplating starting my own blog for quite some time now, but I&rsquo;ve never followed through with it. However, I recently came across &ldquo;<a href="http://getinvolved.hanselman.com/">Become a Social Developer</a>&rdquo; that finally convinced me to setup my own blog.</p>
+
+<p>While I am still in the process of watching all the video content that <a href="https://twitter.com/shanselman">Scott Hanselman</a> and <a href="https://twitter.com/codinghorror">Jeff Atwood</a> have made available, I&rsquo;ve already started working on my blog.</p>
+
+<h2 id="what-s-in-this-post:d08b60bde983c66ce3f64235380e0410">What&rsquo;s in this post</h2>
+
+<p>In this post, I&rsquo;ll talk about the requirements I set out for myself for my blog and how that influenced my choice of technologies/frameworks/services to build and host my blog.</p>
+
+<p>In future posts in the series, I&rsquo;ll go into greater details about how I set up each one the pieces and how you can replicate my setup.</p>
+
+<h2 id="but-does-it-scale:d08b60bde983c66ce3f64235380e0410">But.. Does it scale?</h2>
+
+<p>Let me paint you a picture: you write up a blog post and share it on <a href="https://news.ycombinator.com/">Hacker News</a>. Your post is wildly popular and you end up making the front page. Someone who sees it on the front page of HN, thinks it&rsquo;s worth sharing on Reddit as well. Your site is now receiving 2k-3k unique visitors a second. Let&rsquo;s assume your blog post has a logo, a couple of css/js files, a couple of images and a favicon ( around 10-20 web requests for every new visitor). So the question is will your site be able to handle around 50k requests per second without going down, turning unresponsive, or burning a giant hole in your pocket (oops, auto-scale)? A simple way around this problem was to build my blog as a static site. Since every visitor to my blog sees the same content, I could easily get by without serving any dynamic content.</p>
+
+<h3 id="static-site:d08b60bde983c66ce3f64235380e0410">Static site</h3>
+
+<p>Over the past couple of years, static sites have surged in popularity again. Amazon AWS S3 is ridiculously cheap and <a href="https://pages.github.com/">GitHub Pages</a> is free to host static sites (Sorry! <a href="https://feedback.azure.com/forums/217298-storage/suggestions/1180039-support-a-default-blob-for-blob-storage-containers">No love for Azure here</a> ☹ ). Additionally, using S3/GitHub Pages means I no longer have to worry about OS updates, system reboots, security vulnerabilities, or even poor performance in my web application. <a href="http://blog.apps.npr.org/2013/02/14/app-template-redux.html">NPR had a fantastic piece</a> on how they use just a couple of servers and S3 to build news applications.</p>
+
+<h3 id="builds-on-windows-builds-on-mac:d08b60bde983c66ce3f64235380e0410">Builds on Windows; builds on Mac</h3>
+
+<p>While having a static site is desirable when it comes to hosting, it unreasonable to have to write a blog in just raw HTML. NPR built their own static site generator that is based on Flask (Python microframework). Most static site generators use some sort of templating engine and build system that allows you to author your content in plain-text based formats like <code>Markdown</code> and <code>reStructuredText</code> and output rendered HTML. <a href="https://jekyllrb.com/">Jekyll</a> and <a href="http://octopress.org/">Octopress</a>(a collection of plugins and configuration for Jekyll) seem to among the most popular static site generators. However, Jekyll is not officially supported on Windows. I ended up choosing <a href="https://gohugo.io/">Hugo</a>, a static site generator built using Go, as my platform of choice. Having previously used <a href="http://www.sphinx-doc.org/en/stable/">Sphinx</a> at work and being annoyed by the long build times, I chose Hugo solely because of the extremely fast build times. Hugo seems to have burgeoning community around it and a lot of popular Jekyll themes seem to have already been ported to Hugo. While I&rsquo;ve been intending to give a <a href="https://golang.org/">Go</a> a spin, I ended up using the pre-compiled binaries for Hugo instead of opting to build from source. I was able to use <code>brew</code> to install Hugo on my Mac, and <code>chocolatey</code> to install Hugo on my Windows box.</p>
+
+<h3 id="ssl:d08b60bde983c66ce3f64235380e0410">SSL</h3>
+
+<p>While I don&rsquo;t expect to do any payment processing on my personal blog nor do I serve up any login page, having an SSL issued from a trusted CA will still protect readers of my blog from a <a href="https://wikipedia.org/wiki/Man-in-the-middle_attack">Man-in-the-middle (MITM) attack</a>. Additionally, a huge motivation for me to use SSL was that Google now uses <a href="https://security.googleblog.com/2014/08/https-as-ranking-signal_6.html">HTTPS as a ranking signal</a>.</p>
+
+<p><img src="/post/building-a-blog/freesslcerts.png" alt="Free SSL Certs" /></p>
+
+<p>It used to be the case that SSL certificates were very expensive and I would have never even considered getting one in the past for a personal website. However, both <a href="https://letsencrypt.org/">Let&rsquo;s Encrypt</a> and <a href="https://www.cloudflare.com/">Cloudflare</a> have recently started offering free Domain Validated (DV) certificates. While Let&rsquo;s Encrypt is it&rsquo;s own CA, Cloudflare provides certificates issued by Comodo. Using Cloudflare as my DNS service and allowing the edge server in it&rsquo;s Content Delivery Network (CDN) to serve up my SSL certificate proved to be a easier option for me than getting set up with Let&rsquo;s Encrypt.</p>
+
+<h2 id="closing-thoughts:d08b60bde983c66ce3f64235380e0410">Closing thoughts</h2>
+
+<p>While I continue to try and set up this infrastructure for my blog, I&rsquo;ve reached my first base camp. The screenshot below shows a couple of things I&rsquo;ve already accomplished.</p>
+
+<ul>
+<li>DNS Name: I was able update the DNS records for my site such that <a href="https://blog.shirhatti.com">https://blog.shirhatti.com</a> points at <a href="https://shirhatti.github.io">https://shirhatti.github.io</a></li>
+<li>SSL: Did you notice the green padlock in the URL? SSL support has been implemented</li>
+<li>Placeholder page: I uploaded a simple static site for the time being whose source can be found in <a href="https://github.com/shirhatti/shirhatti.github.io/tree/v1.0">shirhatti.github.io repo</a>.</li>
+</ul>
+
+<p><img src="/post/building-a-blog/eventually.png" alt="Eventually- Placeholder site" /></p>
+
+  </div>
+  <div id="disqus_thread"></div>
+</div>
+
+
+<script type="text/javascript">
+var disqus_shortname = "shirhatti";
+(function () {
+    var s = document.createElement('script'); s.async = true;
+    s.type = 'text/javascript';
+    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script>
+
+
+
+<script type="text/javascript">
+    var disqus_shortname = "shirhatti";
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+
+<script src="https://shirhatti.com/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+</body>
+</html>
+
