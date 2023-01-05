@@ -18,10 +18,10 @@ theme = "hyde-x"
     # Sidebar social links.
     github = "https://github.com/shirhatti"
     twitter = "https://twitter.com/sshirhatti"
-
+    mastodon = "https://hachyderm.io/@shirhatti"
     highlight = "solarized_light"
 
-    tagline = "PM @ [Microsoft](https://www.microsoft.com/)<br />[UT Austin](https://www.utexas.edu/) Alumni<br />Bengaluru native"
+    tagline = "PM @ Uber<br />[UT Austin](https://www.utexas.edu/) Alumnus<br />Bengaluru native"
 
     googleAnalytics = "UA-73348939-1"
 
