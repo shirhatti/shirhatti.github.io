@@ -1,7 +1,7 @@
 baseURL = 'http://shirhatti.com/'
 languageCode = 'en-us'
 title = 'shirhatti.com'
-theme = "hyde"
+theme = "paper"
 
 [author]
     name = "Sourabh Shirhatti"
