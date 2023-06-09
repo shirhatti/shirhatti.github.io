@@ -1,18 +1,13 @@
-baseurl = "https://shirhatti.com/"
-languageCode = "en-us"
-title = "Shirhatti"
-disqusShortname = "shirhatti"
-paginate = 10
-theme = "hyde-x"
+baseURL = 'http://shirhatti.com/'
+languageCode = 'en-us'
+title = 'shirhatti.com'
+theme = "hyde"
 
 [author]
     name = "Sourabh Shirhatti"
 
 [permalinks]
     post = "/blog/:year/:month/:day/:title/"
-
-[taxonomies]
-    category = "categories"
 
 [params]
     # Sidebar social links.
