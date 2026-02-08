@@ -320,7 +320,7 @@ export const commands: Command[] = [
       terminal.writeln('')
       terminal.writeln(`  ${ansi.brightGreen}Email:${ansi.reset}      ${ansi.dim}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${ansi.reset}`)
       terminal.writeln(`  ${ansi.brightGreen}GitHub:${ansi.reset}     ${formatLink('https://github.com/shirhatti', `${ansi.dim}https://github.com/shirhatti${ansi.reset}`)}`)
-      terminal.writeln(`  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://twitter.com/sshirhatti', `${ansi.dim}https://twitter.com/sshirhatti${ansi.reset}`)}`)
+      terminal.writeln(`  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://x.com/sshirhatti', `${ansi.dim}https://x.com/sshirhatti${ansi.reset}`)}`)
       terminal.writeln(`  ${ansi.brightGreen}LinkedIn:${ansi.reset}   ${formatLink('https://linkedin.com/in/shirhatti', `${ansi.dim}https://linkedin.com/in/shirhatti${ansi.reset}`)}`)
       terminal.writeln('')
     },

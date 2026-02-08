@@ -12,31 +12,40 @@
   overflow-y: auto !important;
 }
 
-/* Mobile input - visible on mobile, hidden on desktop */
-.mobile-input {
+/* Mobile bottom bar - sticky at bottom */
+.mobile-bottom-bar {
   position: fixed;
-  bottom: 60px;
+  bottom: 0;
   left: 0;
   right: 0;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  background: #2d2d2d;
+  border-top: none;
+  box-shadow: 0 -1px 0 #3c3c3c;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile input */
+.mobile-input {
+  flex: 1;
+  min-width: 0;
   padding: 12px 16px;
   font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace;
   font-size: 16px; /* Prevents zoom on iOS */
-  background: #2d2d2d;
+  background: transparent;
   color: #d4d4d4;
   border: none;
-  border-top: 1px solid #3c3c3c;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 100;
 }
 
 .mobile-input::placeholder {
-  color: #666;
+  color: #999;
 }
 
 .mobile-input:focus {
   outline: none;
-  background: #333;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* Command palette toggle button */
@@ -61,9 +70,37 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
+/* Inside the mobile bottom bar, override to inline */
+.mobile-bottom-bar .command-palette-toggle {
+  position: static;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 0;
+  background: transparent;
+  color: #0dbc79;
+  box-shadow: none;
+  font-size: 20px;
+  border-left: 1px solid #3c3c3c;
+}
+
+.mobile-bottom-bar .command-palette-toggle:active {
+  background: #3c3c3c;
+}
+
 .command-palette-toggle:active {
   transform: scale(0.95);
   box-shadow: 0 2px 8px rgba(13, 188, 121, 0.3);
+}
+
+.command-palette-toggle:focus-visible {
+  outline: 2px solid #0dbc79;
+  outline-offset: 2px;
+}
+
+.command-palette button:focus-visible {
+  outline: 2px solid #0dbc79;
+  outline-offset: -2px;
 }
 
 /* Command palette */
@@ -129,9 +166,16 @@
   background: #3c3c3c;
 }
 
-/* Desktop - hide mobile input only */
+/* Desktop - hide mobile bottom bar */
 @media (min-width: 769px) {
-  .mobile-input {
+  .mobile-bottom-bar {
+    display: none !important;
+  }
+}
+
+/* Mobile - hide desktop-only floating button */
+@media (max-width: 768px) {
+  .command-palette-toggle.desktop-only {
     display: none !important;
   }
 }
@@ -140,11 +184,11 @@
 @media (max-width: 768px) {
   .terminal-content {
     padding: 6px;
-    padding-bottom: 80px; /* Space for mobile input */
+    margin-bottom: 50px; /* Space for sticky bottom bar */
   }
 
   .terminal-content .xterm {
-    font-size: 12px !important;
+    font-size: 14px !important;
   }
 
   /* Make terminal scrollable with touch */
@@ -152,22 +196,20 @@
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+
+  .command-palette {
+    bottom: 50px;
+  }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
   .terminal-content .xterm {
-    font-size: 11px !important;
+    font-size: 13px !important;
   }
 
   .mobile-input {
     font-size: 16px; /* Maintain 16px to prevent iOS zoom */
     padding: 10px 12px;
-  }
-
-  .command-palette-toggle {
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
   }
 }

@@ -87,6 +87,7 @@
     height: 100vh;
     margin: 0;
     border-radius: 0;
+    box-shadow: none;
   }
 
   .terminal-title-bar {
@@ -104,7 +105,7 @@
   }
 
   .terminal-title {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
@@ -121,6 +122,6 @@
 
   .terminal-title {
     text-align: left;
-    font-size: 10px;
+    font-size: 11px;
   }
 }

@@ -122,6 +122,9 @@ export function Pager({ post, onClose }: PagerProps) {
           <span><kbd>Space</kbd>/<kbd>b</kbd> page</span>
           <span><kbd>q</kbd> close</span>
         </div>
+        <button className="pager-close-btn" onClick={onClose} aria-label="Close pager">
+          ✕
+        </button>
       </div>
     </div>
   )

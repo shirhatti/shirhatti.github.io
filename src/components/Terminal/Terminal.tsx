@@ -23,7 +23,7 @@ function getWelcomeBanner(): string {
     '',
     `  ${ansi.brightGreen}Email:${ansi.reset}      ${ansi.dim}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${ansi.reset}`,
     `  ${ansi.brightGreen}GitHub:${ansi.reset}     ${formatLink('https://github.com/shirhatti', `${ansi.dim}https://github.com/shirhatti${ansi.reset}`)}`,
-    `  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://twitter.com/sshirhatti', `${ansi.dim}https://twitter.com/sshirhatti${ansi.reset}`)}`,
+    `  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://x.com/sshirhatti', `${ansi.dim}https://x.com/sshirhatti${ansi.reset}`)}`,
     `  ${ansi.brightGreen}LinkedIn:${ansi.reset}   ${formatLink('https://linkedin.com/in/shirhatti', `${ansi.dim}https://linkedin.com/in/shirhatti${ansi.reset}`)}`,
     '',
     `  ${ansi.brightWhite}${ansi.bold}Recent Posts:${ansi.reset}`,
@@ -97,13 +97,14 @@ export function Terminal() {
     term.write('\x1b[?25h')
     inputInterceptorRef.current = null
     setPagerPost(null)
+    navigate('/')
 
     // Resolve the promise so writePrompt fires
     if (pagerResolveRef.current) {
       pagerResolveRef.current()
       pagerResolveRef.current = null
     }
-  }, [getTerminal])
+  }, [getTerminal, navigate])
 
   // Re-focus terminal after pager overlay is removed from the DOM
   useEffect(() => {
@@ -348,7 +349,12 @@ export function Terminal() {
       const term = getTerminal()
       if (!term) return
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Tab') {
+        e.preventDefault()
+        handleTabCompletionRef.current()
+        // Sync completed value back to input element
+        e.currentTarget.value = inputBuffer.current
+      } else if (e.key === 'Enter') {
         e.preventDefault()
         const value = e.currentTarget.value
         executeCommand(value)
@@ -514,28 +520,39 @@ export function Terminal() {
       </div>
 
       <>
-        {isMobile && (
-          <input
-            ref={mobileInputRef}
-            type="text"
-            className="mobile-input"
-            onKeyDown={handleMobileInput}
-            onChange={handleMobileInputChange}
-            placeholder="Type command..."
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-          />
+        {!pagerPost && (
+          <div className="mobile-bottom-bar">
+            <input
+              ref={mobileInputRef}
+              type="text"
+              className="mobile-input"
+              onKeyDown={handleMobileInput}
+              onChange={handleMobileInputChange}
+              placeholder="Type command..."
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+            <button
+              className="command-palette-toggle"
+              onClick={() => setShowCommandPalette(!showCommandPalette)}
+              aria-label="Toggle command palette"
+            >
+              {showCommandPalette ? '✕' : '⌘'}
+            </button>
+          </div>
         )}
 
-        <button
-          className="command-palette-toggle"
-          onClick={() => setShowCommandPalette(!showCommandPalette)}
-          aria-label="Toggle command palette"
-        >
-          {showCommandPalette ? '✕' : '⌘'}
-        </button>
+        {!pagerPost && (
+          <button
+            className="command-palette-toggle desktop-only"
+            onClick={() => setShowCommandPalette(!showCommandPalette)}
+            aria-label="Toggle command palette"
+          >
+            {showCommandPalette ? '✕' : '⌘'}
+          </button>
+        )}
 
         {showCommandPalette && (
           <div className="command-palette">
