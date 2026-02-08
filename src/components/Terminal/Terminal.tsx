@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useState, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTerminal } from './useTerminal'
 import { commands, findCommand } from '../../commands'
@@ -12,8 +12,11 @@ import {
   identity,
 } from '../../utils/ansi'
 import { findClosestMatch } from '../../utils/fuzzy'
-import { Pager } from '../Pager/Pager'
-import type { Post } from '../../data/types'
+import {
+  getOverlayComponent,
+  matchOverlayRoute,
+  type OverlayState,
+} from '../../overlays'
 import './Terminal.css'
 
 function getWelcomeBanner(): string {
@@ -46,8 +49,8 @@ export function Terminal() {
   const location = useLocation()
   const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [pagerPost, setPagerPost] = useState<Post | null>(null)
-  const pagerResolveRef = useRef<(() => void) | null>(null)
+  const [overlay, setOverlay] = useState<OverlayState | null>(null)
+  const overlayResolveRef = useRef<(() => void) | null>(null)
 
   const inputInterceptorRef = useRef<((data: string) => void) | null>(null)
   const inputBuffer = useRef('')
@@ -71,44 +74,44 @@ export function Terminal() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const openPager = useCallback(
-    (post: Post): Promise<void> => {
+  const openOverlay = useCallback(
+    (name: string, props?: Record<string, unknown>): Promise<void> => {
       const term = getTerminal()
       if (!term) return Promise.resolve()
 
-      // Hide cursor while pager is open
+      // Hide cursor while overlay is open
       term.write('\x1b[?25l')
-      // Prevent keys from reaching xterm while pager is open
+      // Prevent keys from reaching xterm while overlay is open
       inputInterceptorRef.current = () => {}
-      setPagerPost(post)
+      setOverlay({ name, props: props ?? {} })
 
       return new Promise<void>((resolve) => {
-        pagerResolveRef.current = resolve
+        overlayResolveRef.current = resolve
       })
     },
     [getTerminal],
   )
 
-  const handlePagerClose = useCallback(() => {
+  const handleOverlayClose = useCallback(() => {
     const term = getTerminal()
     if (!term) return
 
     // Show cursor again
     term.write('\x1b[?25h')
     inputInterceptorRef.current = null
-    setPagerPost(null)
+    setOverlay(null)
     navigate('/')
 
     // Resolve the promise so writePrompt fires
-    if (pagerResolveRef.current) {
-      pagerResolveRef.current()
-      pagerResolveRef.current = null
+    if (overlayResolveRef.current) {
+      overlayResolveRef.current()
+      overlayResolveRef.current = null
     }
   }, [getTerminal, navigate])
 
-  // Re-focus terminal after pager overlay is removed from the DOM
+  // Re-focus terminal after overlay is removed from the DOM
   useEffect(() => {
-    if (pagerPost === null) {
+    if (overlay === null) {
       const term = getTerminal()
       if (term) {
         term.focus()
@@ -117,7 +120,7 @@ export function Terminal() {
         if (textarea) textarea.focus()
       }
     }
-  }, [pagerPost, getTerminal])
+  }, [overlay, getTerminal])
 
   const writePrompt = useCallback(() => {
     const term = getTerminal()
@@ -270,7 +273,7 @@ export function Terminal() {
         setInputInterceptor: (handler) => {
           inputInterceptorRef.current = handler
         },
-        openPager: openPagerRef.current,
+        openOverlay: openOverlayRef.current,
       }
 
       term.writeln('')
@@ -337,9 +340,9 @@ export function Terminal() {
     [getTerminal, executeCommand],
   )
 
-  // Keep openPager ref stable for the context
-  const openPagerRef = useRef(openPager)
-  openPagerRef.current = openPager
+  // Keep openOverlay ref stable for the context
+  const openOverlayRef = useRef(openOverlay)
+  openOverlayRef.current = openOverlay
 
   // Keep executeCommand ref stable for the onData listener
   const executeRef = useRef(executeCommand)
@@ -484,17 +487,14 @@ export function Terminal() {
       }
     })
 
-    // If we loaded directly to a post URL, open pager
-    const match = location.pathname.match(/^\/post\/(.+)$/)
-    if (match) {
-      const post = posts.find((p) => p.slug === match[1])
-      if (post) {
-        term.write(formatPrompt())
-        term.writeln(`less ${post.slug}`)
-        openPagerRef.current(post).then(() => writePrompt())
-      } else {
-        writePrompt()
-      }
+    // If we loaded directly to an overlay URL, open it
+    const overlayMatch = matchOverlayRoute(location.pathname)
+    if (overlayMatch) {
+      term.write(formatPrompt())
+      term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
+      openOverlayRef
+        .current(overlayMatch.name, overlayMatch.props)
+        .then(() => writePrompt())
     } else {
       writePrompt()
     }
@@ -537,11 +537,19 @@ export function Terminal() {
           className="terminal-content"
           onClick={handleTerminalClick}
         />
-        {pagerPost && <Pager post={pagerPost} onClose={handlePagerClose} />}
+        {overlay &&
+          (() => {
+            const C = getOverlayComponent(overlay.name)
+            return C ? (
+              <Suspense fallback={null}>
+                <C onClose={handleOverlayClose} {...overlay.props} />
+              </Suspense>
+            ) : null
+          })()}
       </div>
 
       <>
-        {!pagerPost && (
+        {!overlay && (
           <div className="mobile-bottom-bar">
             <input
               ref={mobileInputRef}
@@ -565,7 +573,7 @@ export function Terminal() {
           </div>
         )}
 
-        {!pagerPost && (
+        {!overlay && (
           <button
             className="command-palette-toggle desktop-only"
             onClick={() => setShowCommandPalette(!showCommandPalette)}

@@ -10,6 +10,7 @@ import { formatPostAsBat, formatLsOutput } from '../utils/cat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
+import { overlayPath } from '../overlays'
 import type { Command } from './types'
 
 /**
@@ -244,7 +245,7 @@ export const commands: Command[] = [
     name: 'less',
     description: 'Read a blog post in the pager',
     handler: async (args, ctx) => {
-      const { terminal, posts, navigate, openPager } = ctx
+      const { terminal, posts, navigate, openOverlay } = ctx
       if (args.length === 0) {
         terminal.writeln('')
         terminal.writeln(formatError('usage: less <post-name>'))
@@ -278,8 +279,8 @@ export const commands: Command[] = [
         terminal.writeln('')
         return
       }
-      navigate(`/post/${post.slug}`)
-      if (openPager) return openPager(post)
+      navigate(overlayPath('pager', { slug: post.slug }))
+      if (openOverlay) return openOverlay('pager', { post })
     },
   },
   {

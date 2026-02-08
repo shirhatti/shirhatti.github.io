@@ -7,7 +7,7 @@ export interface CommandContext {
   posts: Post[]
   history?: string[]
   setInputInterceptor?: (handler: ((data: string) => void) | null) => void
-  openPager?: (post: Post) => Promise<void>
+  openOverlay?: (name: string, props?: Record<string, unknown>) => Promise<void>
 }
 
 export interface Command {
