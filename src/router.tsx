@@ -5,6 +5,7 @@ import { overlayRoutes } from './overlays'
 const router = createHashRouter([
   { path: '/', element: <App /> },
   ...overlayRoutes.map((path) => ({ path, element: <App /> })),
+  { path: '*', element: <App /> },
 ])
 
 export function Router() {
