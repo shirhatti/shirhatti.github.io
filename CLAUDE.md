@@ -24,6 +24,8 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 - `src/commands/registry.ts` — all terminal commands (help, cat, less, ls, whoami, stats, etc.)
 - `src/commands/types.ts` — Command type definition
 - `src/components/Terminal/Terminal.tsx` — xterm.js terminal, input handling, tab completion, welcome banner
+- `src/overlays/index.ts` — overlay registry, route matching, lazy loading (infrastructure)
+- `src/overlays/pager.ts` — pager overlay entry (route, resolver, component loader)
 - `src/components/Pager/Pager.tsx` — HTML pager for `less` command
 - `src/components/TerminalWindow/` — window chrome UI
 - `src/utils/ansi.ts` — ANSI escape codes, formatLink, shared `identity` constant (header box + contact info)
@@ -34,6 +36,10 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 - `src/utils/frontmatter.ts` — YAML frontmatter parser
 - `src/utils/image.ts` — iTerm2 inline image protocol support
 - `src/data/posts.ts` — glob-imports posts from `posts/` directory
+
+## Adding an Overlay
+
+See [`src/overlays/README.md`](src/overlays/README.md).
 
 ## Key Patterns
 
