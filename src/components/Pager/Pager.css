@@ -1,11 +1,11 @@
-/* Markdown content styles - these target dangerouslySetInnerHTML output */
-/* and can't use StyleX (no className access on child elements) */
-/* Colors must be hardcoded since StyleX defineVars generates hashed names */
+/* Markdown content styles — targets dangerouslySetInnerHTML output.
+   Can't use StyleX (no className access on child elements).
+   Colors are hardcoded because StyleX defineVars generates hashed names. */
 
 .pager-content h1 {
   font-size: 2em;
   font-weight: 700;
-  color: #ffffff;
+  color: #fff;
   border-bottom: 1px solid #404040;
   padding-bottom: 8px;
   margin: 1.2em 0 0.6em;
@@ -14,7 +14,7 @@
 .pager-content h2 {
   font-size: 1.5em;
   font-weight: 700;
-  color: #ffffff;
+  color: #fff;
   border-bottom: 1px solid #333;
   padding-bottom: 6px;
   margin: 1.2em 0 0.5em;
@@ -25,14 +25,6 @@
   font-weight: 600;
   color: #e0e0e0;
   margin: 1em 0 0.4em;
-}
-
-.pager-content h4,
-.pager-content h5,
-.pager-content h6 {
-  font-weight: 600;
-  color: #d0d0d0;
-  margin: 0.8em 0 0.3em;
 }
 
 .pager-content p {
@@ -46,35 +38,6 @@
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 0.9em;
-}
-
-.pager-content pre {
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 16px;
-  overflow-x: auto;
-  margin: 1em 0;
-}
-
-.pager-content pre code {
-  background: none;
-  color: #d4d4d4;
-  padding: 0;
-  font-size: 0.85em;
-  line-height: 1.5;
-}
-
-.pager-content blockquote {
-  border-left: 3px solid #4ec9b0;
-  margin: 1em 0;
-  padding: 4px 16px;
-  color: #b0b0b0;
-  font-style: italic;
-}
-
-.pager-content blockquote p {
-  margin: 0.3em 0;
 }
 
 .pager-content a {
@@ -110,38 +73,4 @@
 
 .pager-content li {
   margin: 0.3em 0;
-}
-
-.pager-content hr {
-  border: none;
-  border-top: 1px solid #404040;
-  margin: 1.5em 0;
-}
-
-.pager-content table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 1em 0;
-}
-
-.pager-content th,
-.pager-content td {
-  border: 1px solid #404040;
-  padding: 8px 12px;
-  text-align: left;
-}
-
-.pager-content th {
-  background: #2d2d2d;
-  font-weight: 600;
-  color: #e0e0e0;
-}
-
-.pager-content strong {
-  color: #e0e0e0;
-  font-weight: 600;
-}
-
-.pager-content em {
-  font-style: italic;
 }
