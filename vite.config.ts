@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import viteCompression from 'vite-plugin-compression'
 
@@ -89,5 +89,9 @@ export default defineConfig({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', '@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-image'],
+  },
+  test: {
+    include: ['src/**/*.test.ts'],
+    exclude: ['tests/**'],
   },
 })

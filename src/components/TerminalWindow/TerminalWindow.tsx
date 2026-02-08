@@ -10,7 +10,7 @@ export function TerminalWindow({ children }: { children: ReactNode }) {
           <span className="terminal-button minimize" />
           <span className="terminal-button maximize" />
         </div>
-        <span className="terminal-title">visitor@blog: ~</span>
+        <span className="terminal-title">visitor@shirhatti.com: ~</span>
         <div className="terminal-buttons-spacer" />
       </div>
       {children}

@@ -7,6 +7,7 @@ export interface CommandContext {
   posts: Post[]
   history?: string[]
   setInputInterceptor?: (handler: ((data: string) => void) | null) => void
+  openPager?: (post: Post) => Promise<void>
 }
 
 export interface Command {

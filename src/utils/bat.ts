@@ -16,34 +16,31 @@ const BOX_CHARS = {
 } as const
 
 interface BatOptions {
-  showLineNumbers?: boolean
   showHeader?: boolean
-  showGrid?: boolean
-  startLine?: number
+  cols?: number
 }
 
 /**
- * Format a post in bat-style with line numbers, header, and syntax highlighting
+ * Format a post in bat-style with header and syntax highlighting
  */
 export function formatPostAsBat(
   post: Post,
   options: BatOptions = {}
 ): string {
   const {
-    showLineNumbers = true,
     showHeader = true,
-    showGrid = true,
-    startLine = 1,
+    cols = 80,
   } = options
 
   const lines = post.content.split('\r\n')
-  const maxLineNum = startLine + lines.length - 1
-  const lineNumWidth = String(maxLineNum).length
   const output: string[] = []
+
+  const contentWidth = Math.max(cols, 20)
+  const headerWidth = Math.max(cols, 40)
 
   // File header (bat-style)
   if (showHeader) {
-    const headerLine = `${BOX_CHARS.horizontal.repeat(80)}`
+    const headerLine = `${BOX_CHARS.horizontal.repeat(headerWidth)}`
     output.push('')
     output.push(`${ansi.dim}${headerLine}${ansi.reset}`)
 
@@ -60,25 +57,23 @@ export function formatPostAsBat(
     output.push(`${ansi.dim}${headerLine}${ansi.reset}`)
   }
 
-  // Content with line numbers and syntax highlighting
-  lines.forEach((line, idx) => {
-    const lineNum = startLine + idx
-    const formattedLine = highlightSyntax(line)
+  // Content with syntax highlighting and word wrap
+  const hlState: HighlightState = { inCodeBlock: false, codeLang: '' }
 
-    if (showLineNumbers) {
-      const lineNumStr = String(lineNum).padStart(lineNumWidth, ' ')
-      const separator = showGrid ? BOX_CHARS.vertical : ' '
-      output.push(
-        `${ansi.dim}${lineNumStr}${ansi.reset} ${ansi.dim}${separator}${ansi.reset} ${formattedLine}`
-      )
-    } else {
+  lines.forEach((line) => {
+    const formattedLine = highlightSyntax(line, hlState)
+    // Skip wrapping for iTerm2 inline image sequences
+    if (line.includes('\x1b]1337;File=')) {
       output.push(formattedLine)
+    } else {
+      const wrapped = wrapAnsi(formattedLine, contentWidth)
+      wrapped.forEach((segment) => output.push(segment))
     }
   })
 
   // Footer separator
   if (showHeader) {
-    output.push(`${ansi.dim}${BOX_CHARS.horizontal.repeat(80)}${ansi.reset}`)
+    output.push(`${ansi.dim}${BOX_CHARS.horizontal.repeat(headerWidth)}${ansi.reset}`)
   }
 
   output.push('')
@@ -86,103 +81,295 @@ export function formatPostAsBat(
 }
 
 /**
- * Simple syntax highlighting for markdown-style content
+ * Word-wrap an ANSI-formatted string at word boundaries.
+ * Measures visible width (ignoring escape sequences and OSC 8 links).
+ * Tracks active OSC 8 link and ANSI style state so that when a line
+ * breaks mid-link, the link is closed/reopened and styles are reset/restored.
  */
-function highlightSyntax(line: string): string {
+function wrapAnsi(text: string, maxWidth: number): string[] {
+  // Fast path: measure visible length, skip wrapping if it fits
+  const visLen = visibleLength(text)
+  if (visLen <= maxWidth) return [text]
+
+  const tokens = tokenize(text)
+  const lines: string[] = []
+  let currentLine = ''
+  let currentVisLen = 0
+  // Track active OSC 8 link URL (empty = not in a link)
+  let activeLink = ''
+  // Track active ANSI style codes (accumulated CSI sequences)
+  let activeStyles: string[] = []
+
+  /** Scan a token's escape sequences and update activeLink/activeStyles. */
+  const updateState = (token: string) => {
+    for (const m of token.matchAll(/\x1b\]8;;([^\x07\x1b]*?)(?:\x07|\x1b\\)/g)) {
+      activeLink = m[1] // empty string = link close, non-empty = link open
+    }
+    for (const m of token.matchAll(/\x1b\[([0-9;]*[a-zA-Z])/g)) {
+      if (m[1] === '0m') {
+        activeStyles = []
+      } else {
+        activeStyles.push(`\x1b[${m[1]}`)
+      }
+    }
+  }
+
+  /** Finish the current line, closing any open link/style. */
+  const finishLine = () => {
+    let line = currentLine
+    if (activeLink) line += '\x1b]8;;\x1b\\'
+    if (activeStyles.length > 0) line += ansi.reset
+    lines.push(line)
+    currentLine = ''
+    currentVisLen = 0
+  }
+
+  /** Start a continuation line, reopening any active style/link. */
+  const continueOnNewLine = () => {
+    if (activeStyles.length > 0) currentLine += activeStyles.join('')
+    if (activeLink) currentLine += `\x1b]8;;${activeLink}\x1b\\`
+  }
+
+  for (const token of tokens) {
+    const tokenVisLen = visibleLength(token)
+
+    // Pure whitespace token
+    if (/^\s+$/.test(token)) {
+      if (currentVisLen + tokenVisLen > maxWidth && currentVisLen > 0) {
+        finishLine()
+        continueOnNewLine()
+      } else {
+        currentLine += token
+        currentVisLen += tokenVisLen
+      }
+      // Whitespace has no escapes, no state update needed
+      continue
+    }
+
+    // Word token (may contain ANSI)
+    if (currentVisLen + tokenVisLen > maxWidth && currentVisLen > 0) {
+      finishLine()
+      continueOnNewLine()
+      currentLine += token
+      currentVisLen = tokenVisLen
+    } else {
+      currentLine += token
+      currentVisLen += tokenVisLen
+    }
+    // Update state after adding the token to the line
+    updateState(token)
+  }
+
+  if (currentLine.length > 0) {
+    lines.push(currentLine)
+  }
+  return lines.length > 0 ? lines : [text]
+}
+
+/** Measure visible length, stripping ANSI escapes and OSC 8 sequences. */
+function visibleLength(s: string): number {
+  return s
+    .replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, '') // OSC sequences (links)
+    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')            // CSI sequences
+    .length
+}
+
+/** Split ANSI text into word and whitespace tokens, keeping escapes attached. */
+function tokenize(text: string): string[] {
+  const tokens: string[] = []
+  // Match: ANSI/OSC sequences, whitespace runs, or non-whitespace runs
+  const re = /(\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;]*[a-zA-Z]|\s+|[^\s\x1b]+)/g
+  let match: RegExpExecArray | null
+  let current = ''
+  let currentIsWord = true
+
+  while ((match = re.exec(text)) !== null) {
+    const part = match[1]
+    const isEscape = part[0] === '\x1b'
+    const isSpace = !isEscape && /^\s+$/.test(part)
+
+    if (isEscape) {
+      // Attach escape sequences to current token
+      current += part
+    } else if (isSpace) {
+      if (currentIsWord && current) {
+        tokens.push(current)
+        current = ''
+      }
+      current += part
+      currentIsWord = false
+    } else {
+      if (!currentIsWord && current) {
+        tokens.push(current)
+        current = ''
+      }
+      current += part
+      currentIsWord = true
+    }
+  }
+
+  if (current) tokens.push(current)
+  return tokens
+}
+
+/**
+ * Render inline markdown spans: links, images, bold, italic, inline code.
+ * Processes left-to-right so nested/overlapping patterns work predictably.
+ */
+function renderInlineMarkdown(text: string): string {
+  let result = ''
+  let i = 0
+
+  while (i < text.length) {
+    // Inline code: `code`
+    if (text[i] === '`') {
+      const end = text.indexOf('`', i + 1)
+      if (end !== -1) {
+        result += `${ansi.yellow}${text.slice(i + 1, end)}${ansi.reset}`
+        i = end + 1
+        continue
+      }
+    }
+
+    // Image: ![alt](url) — render alt text as accessible caption
+    if (text[i] === '!' && text[i + 1] === '[') {
+      const altEnd = text.indexOf(']', i + 2)
+      if (altEnd !== -1 && text[altEnd + 1] === '(') {
+        const urlEnd = text.indexOf(')', altEnd + 2)
+        if (urlEnd !== -1) {
+          const alt = text.slice(i + 2, altEnd)
+          if (alt) {
+            result += `${ansi.dim}[${alt}]${ansi.reset}`
+          }
+          i = urlEnd + 1
+          continue
+        }
+      }
+    }
+
+    // Link: [text](url) — render as clickable OSC 8 hyperlink
+    if (text[i] === '[') {
+      const textEnd = text.indexOf(']', i + 1)
+      if (textEnd !== -1 && text[textEnd + 1] === '(') {
+        const urlEnd = text.indexOf(')', textEnd + 2)
+        if (urlEnd !== -1) {
+          const linkText = text.slice(i + 1, textEnd)
+          const url = text.slice(textEnd + 2, urlEnd)
+          result += formatLink(url, `${ansi.underline}${ansi.brightCyan}${linkText}${ansi.reset}`)
+          i = urlEnd + 1
+          continue
+        }
+      }
+    }
+
+    // Bold: **text** or __text__
+    if ((text[i] === '*' && text[i + 1] === '*') ||
+        (text[i] === '_' && text[i + 1] === '_')) {
+      const marker = text.slice(i, i + 2)
+      const end = text.indexOf(marker, i + 2)
+      if (end !== -1) {
+        result += `${ansi.bold}${renderInlineMarkdown(text.slice(i + 2, end))}${ansi.reset}`
+        i = end + 2
+        continue
+      }
+    }
+
+    // Italic: *text* or _text_ (but not inside words for _)
+    if (text[i] === '*' || text[i] === '_') {
+      const marker = text[i]
+      // Don't treat _ in the middle of words as italic
+      if (marker === '_' && i > 0 && /\w/.test(text[i - 1])) {
+        result += text[i]
+        i++
+        continue
+      }
+      const end = text.indexOf(marker, i + 1)
+      if (end !== -1 && end > i + 1) {
+        result += `${ansi.italic}${renderInlineMarkdown(text.slice(i + 1, end))}${ansi.reset}`
+        i = end + 1
+        continue
+      }
+    }
+
+    result += text[i]
+    i++
+  }
+
+  return result
+}
+
+/**
+ * Markdown-aware syntax highlighting for terminal rendering.
+ * Tracks code fence state across lines via the inCodeBlock flag.
+ */
+interface HighlightState {
+  inCodeBlock: boolean
+  codeLang: string
+}
+
+function highlightSyntax(line: string, state: HighlightState): string {
   // Pass through iTerm2 inline image sequences unchanged
   if (line.includes('\x1b]1337;File=')) return line
 
-  // Headers (lines with all caps or = underneath, or starting with #)
-  if (/^[A-Z][A-Z\s]+$/.test(line)) {
-    return `${ansi.bold}${ansi.brightYellow}${line}${ansi.reset}`
+  // Code fence toggle: ```lang or ```
+  if (/^`{3}/.test(line)) {
+    if (!state.inCodeBlock) {
+      state.inCodeBlock = true
+      state.codeLang = line.slice(3).trim()
+      return `${ansi.dim}${'─'.repeat(40)}${state.codeLang ? ` ${state.codeLang}` : ''}${ansi.reset}`
+    } else {
+      state.inCodeBlock = false
+      state.codeLang = ''
+      return `${ansi.dim}${'─'.repeat(40)}${ansi.reset}`
+    }
   }
 
+  // Inside code block — render as-is with code coloring
+  if (state.inCodeBlock) {
+    return `  ${ansi.yellow}${line}${ansi.reset}`
+  }
+
+  // Setext heading underlines (=== or ---)
   if (/^={3,}$/.test(line) || /^-{3,}$/.test(line)) {
     return `${ansi.dim}${line}${ansi.reset}`
   }
 
-  // Headers with # prefix
-  if (/^#+\s/.test(line)) {
-    return `${ansi.bold}${ansi.brightYellow}${line}${ansi.reset}`
+  // ATX headers: # Heading — strip the # prefix for cleaner display
+  const headerMatch = line.match(/^(#{1,6})\s+(.*)$/)
+  if (headerMatch) {
+    const level = headerMatch[1].length
+    const rendered = renderInlineMarkdown(headerMatch[2])
+    if (level <= 2) {
+      return `\r\n${ansi.bold}${ansi.underline}${ansi.brightWhite}${rendered}${ansi.reset}`
+    }
+    return `\r\n${ansi.bold}${ansi.brightYellow}${rendered}${ansi.reset}`
   }
 
-  // Command/code lines (indented with spaces, contain common shell/vim patterns)
-  if (
-    line.startsWith('  ') &&
-    (line.includes('$') ||
-      line.includes(':') ||
-      line.includes('  -') ||
-      /^\s+[a-z]+\s/.test(line))
-  ) {
-    return highlightCode(line)
+  // Horizontal rule
+  if (/^(\*{3,}|-{3,}|_{3,})\s*$/.test(line)) {
+    return `${ansi.dim}${'─'.repeat(40)}${ansi.reset}`
   }
 
-  // Bullet points
-  if (/^\s*[*-]\s/.test(line)) {
-    return line.replace(/^(\s*)([*-])(\s)/, (_, space, bullet, ws) => {
-      return `${space}${ansi.brightCyan}${bullet}${ansi.reset}${ws}`
-    })
+  // Blockquote: > text
+  const bqMatch = line.match(/^(>\s?)(.*)$/)
+  if (bqMatch) {
+    return `${ansi.dim}${ansi.brightCyan}▌${ansi.reset} ${ansi.italic}${renderInlineMarkdown(bqMatch[2])}${ansi.reset}`
   }
 
-  // Numbered lists
-  if (/^\s*\d+\.\s/.test(line)) {
-    return line.replace(/^(\s*)(\d+)(\.)(\s)/, (_, space, num, dot, ws) => {
-      return `${space}${ansi.brightCyan}${num}${dot}${ansi.reset}${ws}`
-    })
+  // Unordered list: - item or * item
+  const ulMatch = line.match(/^(\s*)([*-])\s(.*)$/)
+  if (ulMatch) {
+    return `${ulMatch[1]}${ansi.brightCyan}•${ansi.reset} ${renderInlineMarkdown(ulMatch[3])}`
   }
 
-  // Inline code (backticks)
-  if (line.includes('`')) {
-    return line.replace(/`([^`]+)`/g, (_, code) => {
-      return `${ansi.yellow}${code}${ansi.reset}`
-    })
+  // Ordered list: 1. item
+  const olMatch = line.match(/^(\s*)(\d+)\.\s(.*)$/)
+  if (olMatch) {
+    return `${olMatch[1]}${ansi.brightCyan}${olMatch[2]}.${ansi.reset} ${renderInlineMarkdown(olMatch[3])}`
   }
 
-  return line
-}
-
-/**
- * Highlight code snippets
- */
-function highlightCode(line: string): string {
-  let highlighted = line
-
-  // Vim commands (:command)
-  highlighted = highlighted.replace(
-    /(:set|:ls|:b|:bd|\.\w+|'[a-z])/g,
-    `${ansi.brightMagenta}$1${ansi.reset}`
-  )
-
-  // Shell commands and flags
-  highlighted = highlighted.replace(
-    /\b(cat|ls|cd|grep|git|npm|bun|vim?|curl)\b/g,
-    `${ansi.brightGreen}$1${ansi.reset}`
-  )
-
-  // Flags and options
-  highlighted = highlighted.replace(
-    /(\s)(--?[a-z-]+)/g,
-    `$1${ansi.brightBlue}$2${ansi.reset}`
-  )
-
-  // Numbers
-  highlighted = highlighted.replace(
-    /\b(\d+)\b/g,
-    `${ansi.brightCyan}$1${ansi.reset}`
-  )
-
-  // Strings in quotes
-  highlighted = highlighted.replace(
-    /"([^"]*)"/g,
-    `${ansi.yellow}"$1"${ansi.reset}`
-  )
-
-  // Comments (lines starting with #)
-  if (highlighted.trim().startsWith('#')) {
-    return `${ansi.dim}${highlighted}${ansi.reset}`
-  }
-
-  return highlighted
+  // Regular paragraph text — process inline markdown
+  return renderInlineMarkdown(line)
 }
 
 /**
@@ -344,6 +531,7 @@ export function formatLsOutput(posts: Post[], options: LsOptions = {}): string {
       output.push(`  ${icon} ${date}  ${slug}`)
     })
     output.push('')
+    output.push('')
   }
 
   return output.join('\r\n')
@@ -446,6 +634,15 @@ export function formatGrepOutput(
   output.push('')
 
   return output.join('\r\n')
+}
+
+// Exported for unit testing
+export const _internal = {
+  wrapAnsi,
+  visibleLength,
+  tokenize,
+  renderInlineMarkdown,
+  highlightSyntax,
 }
 
 /**

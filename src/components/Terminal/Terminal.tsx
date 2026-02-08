@@ -5,8 +5,9 @@ import { commands, findCommand } from '../../commands'
 import type { CommandContext } from '../../commands'
 import { posts } from '../../data/posts'
 import { formatPrompt, formatError, ansi, formatLink } from '../../utils/ansi'
-import { formatPostAsBat } from '../../utils/bat'
 import { findClosestMatch } from '../../utils/fuzzy'
+import { Pager } from '../Pager/Pager'
+import type { Post } from '../../data/types'
 import './Terminal.css'
 
 function getWelcomeBanner(): string {
@@ -18,12 +19,20 @@ function getWelcomeBanner(): string {
     `  ║                                   ║`,
     `  ╚═══════════════════════════════════╝${ansi.reset}`,
     '',
-    `  ${ansi.dim}A developer's blog. Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
+    `  ${ansi.dim}Builder, Product Manager, and Developer${ansi.reset}`,
+    '',
+    `  ${ansi.brightGreen}Email:${ansi.reset}      ${ansi.dim}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${ansi.reset}`,
+    `  ${ansi.brightGreen}GitHub:${ansi.reset}     ${formatLink('https://github.com/shirhatti', `${ansi.dim}https://github.com/shirhatti${ansi.reset}`)}`,
+    `  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://twitter.com/sshirhatti', `${ansi.dim}https://twitter.com/sshirhatti${ansi.reset}`)}`,
+    `  ${ansi.brightGreen}LinkedIn:${ansi.reset}   ${formatLink('https://linkedin.com/in/shirhatti', `${ansi.dim}https://linkedin.com/in/shirhatti${ansi.reset}`)}`,
     '',
     `  ${ansi.brightWhite}${ansi.bold}Recent Posts:${ansi.reset}`,
+    '',
     ...posts.slice(0, 3).map((post, idx) =>
-      `    ${ansi.dim}${idx + 1}. ${ansi.green}cat${ansi.reset} ${formatLink(`#/post/${post.slug}`, `${ansi.brightCyan}${post.slug}${ansi.reset}`)} ${ansi.dim}(${post.date}) - ${post.title}${ansi.reset}`
+      `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${post.slug}`, `${ansi.brightCyan}${post.slug}${ansi.reset}`)} ${ansi.dim}(${post.date}) - ${post.title}${ansi.reset}`
     ),
+    '',
+    `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
     '',
     '',
   ].join('\r\n')
@@ -37,6 +46,8 @@ export function Terminal() {
   const location = useLocation()
   const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [pagerPost, setPagerPost] = useState<Post | null>(null)
+  const pagerResolveRef = useRef<(() => void) | null>(null)
 
   const inputInterceptorRef = useRef<((data: string) => void) | null>(null)
   const inputBuffer = useRef('')
@@ -59,6 +70,53 @@ export function Terminal() {
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  const openPager = useCallback(
+    (post: Post): Promise<void> => {
+      const term = getTerminal()
+      if (!term) return Promise.resolve()
+
+      // Hide cursor while pager is open
+      term.write('\x1b[?25l')
+      // Prevent keys from reaching xterm while pager is open
+      inputInterceptorRef.current = () => {}
+      setPagerPost(post)
+
+      return new Promise<void>((resolve) => {
+        pagerResolveRef.current = resolve
+      })
+    },
+    [getTerminal],
+  )
+
+  const handlePagerClose = useCallback(() => {
+    const term = getTerminal()
+    if (!term) return
+
+    // Show cursor again
+    term.write('\x1b[?25h')
+    inputInterceptorRef.current = null
+    setPagerPost(null)
+
+    // Resolve the promise so writePrompt fires
+    if (pagerResolveRef.current) {
+      pagerResolveRef.current()
+      pagerResolveRef.current = null
+    }
+  }, [getTerminal])
+
+  // Re-focus terminal after pager overlay is removed from the DOM
+  useEffect(() => {
+    if (pagerPost === null) {
+      const term = getTerminal()
+      if (term) {
+        term.focus()
+        // Also focus xterm's internal textarea directly as a fallback
+        const textarea = containerRef.current?.querySelector('textarea')
+        if (textarea) textarea.focus()
+      }
+    }
+  }, [pagerPost, getTerminal])
 
   const writePrompt = useCallback(() => {
     const term = getTerminal()
@@ -93,9 +151,9 @@ export function Terminal() {
         .filter((name) => name.startsWith(prefix))
         .sort()
     } else if (parts.length >= 1) {
-      // Check if first word is cat or bat
+      // Check if first word is cat, bat, or less
       const cmdName = parts[0].toLowerCase()
-      if (cmdName === 'cat' || cmdName === 'bat') {
+      if (cmdName === 'cat' || cmdName === 'bat' || cmdName === 'less') {
         // Complete post slug
         const lastPart = parts[parts.length - 1]
         prefix = input.endsWith(' ') ? '' : lastPart
@@ -207,6 +265,7 @@ export function Terminal() {
         posts,
         history: historyRef.current,
         setInputInterceptor: (handler) => { inputInterceptorRef.current = handler },
+        openPager: openPagerRef.current,
       }
 
       term.writeln('')
@@ -267,6 +326,10 @@ export function Terminal() {
     [getTerminal, executeCommand],
   )
 
+  // Keep openPager ref stable for the context
+  const openPagerRef = useRef(openPager)
+  openPagerRef.current = openPager
+
   // Keep executeCommand ref stable for the onData listener
   const executeRef = useRef(executeCommand)
   executeRef.current = executeCommand
@@ -323,7 +386,7 @@ export function Terminal() {
       activate(_event: MouseEvent, uri: string) {
         const match = uri.match(/#\/post\/(.+)$/)
         if (match) {
-          runCommandRef.current(`cat ${match[1]}`)
+          runCommandRef.current(`less ${match[1]}`)
         } else if (uri.startsWith('http') || uri.startsWith('mailto:')) {
           window.open(uri, '_blank', 'noopener,noreferrer')
         }
@@ -331,17 +394,6 @@ export function Terminal() {
     }
 
     term.write(getWelcomeBanner())
-
-    // If we loaded directly to a post URL, show it
-    const match = location.pathname.match(/^\/post\/(.+)$/)
-    if (match) {
-      const post = posts.find((p) => p.slug === match[1])
-      if (post) {
-        term.write(formatPostAsBat(post))
-      }
-    }
-
-    writePrompt()
 
     const dataDisposable = term.onData((data) => {
       if (inputInterceptorRef.current) {
@@ -416,6 +468,21 @@ export function Terminal() {
       }
     })
 
+    // If we loaded directly to a post URL, open pager
+    const match = location.pathname.match(/^\/post\/(.+)$/)
+    if (match) {
+      const post = posts.find((p) => p.slug === match[1])
+      if (post) {
+        term.write(formatPrompt())
+        term.writeln(`less ${post.slug}`)
+        openPagerRef.current(post).then(() => writePrompt())
+      } else {
+        writePrompt()
+      }
+    } else {
+      writePrompt()
+    }
+
     return () => {
       dataDisposable.dispose()
     }
@@ -441,7 +508,10 @@ export function Terminal() {
 
   return (
     <>
-      <div ref={containerRef} className="terminal-content" onClick={handleTerminalClick} />
+      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div ref={containerRef} className="terminal-content" onClick={handleTerminalClick} />
+        {pagerPost && <Pager post={pagerPost} onClose={handlePagerClose} />}
+      </div>
 
       <>
         {isMobile && (
@@ -492,7 +562,7 @@ export function Terminal() {
                   <button
                     key={post.slug}
                     onClick={() => {
-                      runCommand(`bat ${post.slug}`)
+                      runCommand(`less ${post.slug}`)
                       setShowCommandPalette(false)
                     }}
                   >

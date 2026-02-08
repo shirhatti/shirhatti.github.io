@@ -35,7 +35,7 @@ export const formatError = (t: string) => `${ansi.red}${t}${R}`
 export const formatDim = (t: string) => `${D}${t}${R}`
 
 // Pre-computed prompt for better performance
-const PROMPT = `\x1b[92mvisitor\x1b[0m\x1b[90m@\x1b[0m\x1b[96mblog\x1b[0m\x1b[90m:\x1b[0m\x1b[94m~\x1b[0m\x1b[90m$ \x1b[0m`
+const PROMPT = `\x1b[92mvisitor\x1b[0m\x1b[90m@\x1b[0m\x1b[96mshirhatti.com\x1b[0m\x1b[90m:\x1b[0m\x1b[94m~\x1b[0m\x1b[90m$ \x1b[0m`
 export const formatPrompt = () => PROMPT
 
 // OSC 8 hyperlink support for terminal

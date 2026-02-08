@@ -1,5 +1,4 @@
 import { ansi, formatHeader, formatError, formatDim, formatLink } from '../utils/ansi'
-import { mcHandler } from './mc'
 import { formatPostAsBat, formatLsOutput } from '../utils/bat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
@@ -26,15 +25,30 @@ export const commands: Command[] = [
     aliases: ['h'],
     handler: (_args, ctx) => {
       const { terminal } = ctx
+
+      const groups: { label: string; cmds: string[] }[] = [
+        { label: 'Reading',    cmds: ['cat', 'less', 'ls'] },
+        { label: 'Info',       cmds: ['about', 'stats', 'whoami'] },
+        { label: 'Terminal',   cmds: ['clear', 'help', 'man'] },
+      ]
+
+      const cmdMap = new Map(commands.filter(c => !c.hidden).map(c => [c.name, c]))
+
       terminal.writeln('')
       terminal.writeln(formatHeader('Available Commands'))
-      terminal.writeln('')
-      for (const cmd of commands.filter(c => !c.hidden)) {
-        const name = `${ansi.green}${cmd.name}${ansi.reset}`
-        const aliasText = cmd.aliases && cmd.aliases.length > 0
-          ? `${ansi.dim} (${cmd.aliases.join(', ')})${ansi.reset}`
-          : ''
-        terminal.writeln(`  ${name.padEnd(25)}${cmd.description}${aliasText}`)
+
+      for (const group of groups) {
+        terminal.writeln('')
+        terminal.writeln(`  ${ansi.bold}${ansi.brightWhite}${group.label}${ansi.reset}`)
+        for (const name of group.cmds) {
+          const cmd = cmdMap.get(name)
+          if (!cmd) continue
+          const nameStr = `${ansi.green}${cmd.name}${ansi.reset}`
+          const aliasText = cmd.aliases?.length
+            ? `${ansi.dim} (${cmd.aliases.join(', ')})${ansi.reset}`
+            : ''
+          terminal.writeln(`    ${nameStr.padEnd(25)}${cmd.description}${aliasText}`)
+        }
       }
       terminal.writeln('')
     },
@@ -59,7 +73,7 @@ export const commands: Command[] = [
         terminal.writeln('')
         terminal.writeln(`${ansi.bold}${ansi.underline}AVAILABLE MANUAL PAGES${ansi.reset}`)
 
-        const manPages = ['ls', 'cat', 'stats', 'mc', 'man', 'help', 'clear', 'about']
+        const manPages = ['about', 'cat', 'clear', 'help', 'less', 'ls', 'man', 'stats']
         manPages.forEach(page => {
           terminal.writeln(`       ${ansi.bold}${page}${ansi.reset}`)
         })
@@ -187,10 +201,48 @@ export const commands: Command[] = [
           post.images,
           terminal.cols
         )
-        terminal.write(formatPostAsBat({ ...post, content: processedContent }))
+        terminal.write(formatPostAsBat({ ...post, content: processedContent }, { cols: terminal.cols }))
       } else {
-        terminal.write(formatPostAsBat(post))
+        terminal.write(formatPostAsBat(post, { cols: terminal.cols }))
       }
+    },
+  },
+  {
+    name: 'less',
+    description: 'Read a blog post in the pager',
+    handler: async (args, ctx) => {
+      const { terminal, posts, navigate, openPager } = ctx
+      if (args.length === 0) {
+        terminal.writeln('')
+        terminal.writeln(formatError('usage: less <post-name>'))
+        terminal.writeln(formatDim('  Try: less welcome'))
+        terminal.writeln('')
+        return
+      }
+      const post = posts.find((p) => p.slug === args[0])
+      if (!post) {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(`less: '${args[0]}': No such post found`),
+        )
+
+        const postSlugs = posts.map((p) => p.slug)
+        const suggestion = findClosestMatch(args[0], postSlugs, 3)
+
+        if (suggestion) {
+          terminal.writeln('')
+          terminal.writeln(`${ansi.dim}Did you mean ${ansi.reset}${ansi.brightGreen}${suggestion}${ansi.reset}${ansi.dim}?${ansi.reset}`)
+          terminal.writeln(`${ansi.dim}Try: ${ansi.reset}${ansi.green}less ${suggestion}${ansi.reset}`)
+        } else {
+          terminal.writeln('')
+          terminal.writeln(`${ansi.dim}Use ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim} to see all available posts${ansi.reset}`)
+        }
+
+        terminal.writeln('')
+        return
+      }
+      navigate(`/post/${post.slug}`)
+      if (openPager) return openPager(post)
     },
   },
   {
@@ -264,10 +316,9 @@ export const commands: Command[] = [
       const { terminal } = ctx
       terminal.writeln('')
       terminal.writeln(`${ansi.brightCyan}${ansi.bold}Sourabh Shirhatti${ansi.reset}`)
+      terminal.writeln(`  ${ansi.dim}Builder, Product Manager, and Developer${ansi.reset}`)
       terminal.writeln('')
-      terminal.writeln(`  ${ansi.dim}Software Engineer & Developer${ansi.reset}`)
-      terminal.writeln('')
-      terminal.writeln(`  ${ansi.brightGreen}Email:${ansi.reset}      ${formatLink('mailto:sourabh@shirhatti.com', `${ansi.dim}sourabh@shirhatti.com${ansi.reset}`)}`)
+      terminal.writeln(`  ${ansi.brightGreen}Email:${ansi.reset}      ${ansi.dim}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${ansi.reset}`)
       terminal.writeln(`  ${ansi.brightGreen}GitHub:${ansi.reset}     ${formatLink('https://github.com/shirhatti', `${ansi.dim}https://github.com/shirhatti${ansi.reset}`)}`)
       terminal.writeln(`  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://twitter.com/sshirhatti', `${ansi.dim}https://twitter.com/sshirhatti${ansi.reset}`)}`)
       terminal.writeln(`  ${ansi.brightGreen}LinkedIn:${ansi.reset}   ${formatLink('https://linkedin.com/in/shirhatti', `${ansi.dim}https://linkedin.com/in/shirhatti${ansi.reset}`)}`)
@@ -385,11 +436,6 @@ export const commands: Command[] = [
       terminal.writeln(`${ansi.dim}Hint: Try ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim}, ${ansi.reset}${ansi.green}cat <slug>${ansi.reset}${ansi.dim}, or ${ansi.reset}${ansi.green}help${ansi.reset}`)
       terminal.writeln('')
     },
-  },
-  {
-    name: 'mc',
-    description: 'Midnight Commander-style file browser',
-    handler: mcHandler,
   },
   // Easter Eggs (hidden commands)
   {
@@ -553,7 +599,32 @@ function getManPage(command: string): ManPage | null {
         'cat welcome              Display the "welcome" post',
         'cat my-first-post        Display post by slug name',
         'bat welcome              Alternative command (bat is an alias for cat)'],
-      seeAlso: ['ls(1)', 'bat(1)'],
+      seeAlso: ['ls(1)', 'less(1)', 'bat(1)'],
+    },
+    less: {
+      name: 'less - read a blog post in the pager',
+      synopsis: `${ansi.bold}less${ansi.reset} ${ansi.underline}POST-NAME${ansi.reset}`,
+      description: [
+        'Open a blog post in the HTML pager with proportional fonts.',
+        '',
+        'The pager provides a reading experience with proper heading sizes,',
+        'bold/italic formatting, and native scrolling. Supports vim-style',
+        'keyboard navigation and touch scrolling on mobile.'],
+      options: [
+        { flag: 'j / Down', description: 'Scroll down one line' },
+        { flag: 'k / Up', description: 'Scroll up one line' },
+        { flag: 'Space / PageDown', description: 'Scroll down one page' },
+        { flag: 'b / PageUp', description: 'Scroll up one page' },
+        { flag: 'Ctrl+d', description: 'Scroll down half page' },
+        { flag: 'Ctrl+u', description: 'Scroll up half page' },
+        { flag: 'g / Home', description: 'Go to top' },
+        { flag: 'G / End', description: 'Go to bottom' },
+        { flag: 'q / Esc', description: 'Close pager' },
+      ],
+      examples: [
+        'less welcome             Open "welcome" in the pager',
+        'less my-first-post       Open post by slug name'],
+      seeAlso: ['cat(1)', 'ls(1)'],
     },
     stats: {
       name: 'stats - display blog statistics',
@@ -621,39 +692,6 @@ function getManPage(command: string): ManPage | null {
       examples: [
         'about                Show blog information'],
       seeAlso: ['stats(1)', 'help(1)'],
-    },
-    mc: {
-      name: 'mc - Midnight Commander-style file browser',
-      synopsis: `${ansi.bold}mc${ansi.reset}`,
-      description: [
-        'Launch a full-screen, dual-panel file browser for blog posts.',
-        '',
-        'The left panel shows posts organized in a collapsible year/month tree.',
-        'The right panel shows a preview of the selected post including title,',
-        'date, tags, excerpt, and content preview.',
-        '',
-        'Supports keyboard navigation (arrow keys, Enter, Space) and mouse',
-        'interaction (click to select, double-click to open, scroll wheel).'],
-      options: [
-        {
-          flag: 'Up/Down arrows',
-          description: 'Navigate through the file tree',
-        },
-        {
-          flag: 'Enter',
-          description: 'Open the selected post or toggle directory expand/collapse',
-        },
-        {
-          flag: 'Space',
-          description: 'Toggle expand/collapse on year/month directories',
-        },
-        {
-          flag: 'q / Esc / F10',
-          description: 'Quit mc and return to the command prompt',
-        }],
-      examples: [
-        'mc                   Launch the file browser'],
-      seeAlso: ['ls(1)', 'cat(1)'],
     },
   }
 
