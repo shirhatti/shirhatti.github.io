@@ -9,13 +9,13 @@ fi
 
 # Reject large files (>1MB)
 MAX_SIZE=$((1 * 1024 * 1024))
-while IFS= read -r -d '' file; do
+git diff --cached --diff-filter=ACM -z --name-only | while IFS= read -r -d '' file; do
   size=$(wc -c < "$file" 2>/dev/null || echo 0)
   if [ "$size" -gt "$MAX_SIZE" ]; then
     echo "Error: $file is $(( size / 1024 ))KB (max 1MB)"
     exit 1
   fi
-done < <(git diff --cached --diff-filter=ACM -z --name-only)
+done
 
 # Lint, format check, build, and test
 bun run lint && bun run format:check && bun run build && bunx vitest run
