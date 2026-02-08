@@ -32,7 +32,9 @@ test.describe('Pager (less command)', () => {
     await page.keyboard.press('q')
 
     // Pager should be gone
-    await expect(page.locator('.pager-overlay')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.pager-overlay')).not.toBeVisible({
+      timeout: 3000,
+    })
   })
 
   test('terminal accepts input after closing pager', async ({ page }) => {
@@ -40,7 +42,9 @@ test.describe('Pager (less command)', () => {
     await typeCommand(page, 'less building-a-blog')
     await expect(page.locator('.pager-overlay')).toBeVisible({ timeout: 3000 })
     await page.keyboard.press('q')
-    await expect(page.locator('.pager-overlay')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.pager-overlay')).not.toBeVisible({
+      timeout: 3000,
+    })
 
     // Small delay for focus to settle
     await page.waitForTimeout(300)
@@ -59,7 +63,9 @@ test.describe('Pager (less command)', () => {
     await expect(page.locator('.pager-overlay')).toBeVisible({ timeout: 3000 })
 
     await page.keyboard.press('Escape')
-    await expect(page.locator('.pager-overlay')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.pager-overlay')).not.toBeVisible({
+      timeout: 3000,
+    })
   })
 
   test('pager keyboard navigation works', async ({ page }) => {
@@ -69,26 +75,28 @@ test.describe('Pager (less command)', () => {
     const scrollArea = page.locator('.pager-scroll')
 
     // Start at top
-    const initialScroll = await scrollArea.evaluate(el => el.scrollTop)
+    const initialScroll = await scrollArea.evaluate((el) => el.scrollTop)
     expect(initialScroll).toBe(0)
 
     // Press j to scroll down
     await page.keyboard.press('j')
     await page.waitForTimeout(100)
-    const afterJ = await scrollArea.evaluate(el => el.scrollTop)
+    const afterJ = await scrollArea.evaluate((el) => el.scrollTop)
     expect(afterJ).toBeGreaterThan(0)
 
     // Press g to go back to top
     await page.keyboard.press('g')
     await page.waitForTimeout(100)
-    const afterG = await scrollArea.evaluate(el => el.scrollTop)
+    const afterG = await scrollArea.evaluate((el) => el.scrollTop)
     expect(afterG).toBe(0)
 
     // Clean up
     await page.keyboard.press('q')
   })
 
-  test('deeplink opens pager and terminal works after close', async ({ page }) => {
+  test('deeplink opens pager and terminal works after close', async ({
+    page,
+  }) => {
     // NOTE: This test must NOT rely on beforeEach's goto('/') because the
     // deeplink detection runs once on mount. Navigate fresh to the deeplink URL.
     await page.goto('about:blank')
@@ -101,7 +109,9 @@ test.describe('Pager (less command)', () => {
 
     // Close pager
     await page.keyboard.press('q')
-    await expect(page.locator('.pager-overlay')).not.toBeVisible({ timeout: 3000 })
+    await expect(page.locator('.pager-overlay')).not.toBeVisible({
+      timeout: 3000,
+    })
 
     // Wait for focus to settle
     await page.waitForTimeout(300)

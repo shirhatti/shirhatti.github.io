@@ -1,0 +1,21 @@
+# Whitespace and formatting checks (git built-in)
+git diff --check --cached || exit 1
+
+# Reject merge conflict markers
+if git diff --cached --diff-filter=ACM -z --name-only | xargs -0 grep -lP '(<{7}|>{7}|={7})' 2>/dev/null; then
+  echo "Error: merge conflict markers found in staged files"
+  exit 1
+fi
+
+# Reject large files (>1MB)
+MAX_SIZE=$((1 * 1024 * 1024))
+while IFS= read -r -d '' file; do
+  size=$(wc -c < "$file" 2>/dev/null || echo 0)
+  if [ "$size" -gt "$MAX_SIZE" ]; then
+    echo "Error: $file is $(( size / 1024 ))KB (max 1MB)"
+    exit 1
+  fi
+done < <(git diff --cached --diff-filter=ACM -z --name-only)
+
+# Lint, format check, build, and test
+bun run lint && bun run format:check && bun run build && bunx vitest run

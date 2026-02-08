@@ -4,7 +4,13 @@ import { useTerminal } from './useTerminal'
 import { commands, findCommand } from '../../commands'
 import type { CommandContext } from '../../commands'
 import { posts } from '../../data/posts'
-import { formatPrompt, formatError, ansi, formatLink } from '../../utils/ansi'
+import {
+  formatPrompt,
+  formatError,
+  ansi,
+  formatLink,
+  identity,
+} from '../../utils/ansi'
 import { findClosestMatch } from '../../utils/fuzzy'
 import { Pager } from '../Pager/Pager'
 import type { Post } from '../../data/types'
@@ -13,24 +19,18 @@ import './Terminal.css'
 function getWelcomeBanner(): string {
   return [
     '',
-    `${ansi.brightCyan}${ansi.bold}  ╔═══════════════════════════════════╗`,
-    `  ║                                   ║`,
-    `  ║        S H I R H A T T I          ║`,
-    `  ║                                   ║`,
-    `  ╚═══════════════════════════════════╝${ansi.reset}`,
+    ...identity.headerBox,
     '',
-    `  ${ansi.dim}Builder, Product Manager, and Developer${ansi.reset}`,
-    '',
-    `  ${ansi.brightGreen}Email:${ansi.reset}      ${ansi.dim}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${ansi.reset}`,
-    `  ${ansi.brightGreen}GitHub:${ansi.reset}     ${formatLink('https://github.com/shirhatti', `${ansi.dim}https://github.com/shirhatti${ansi.reset}`)}`,
-    `  ${ansi.brightGreen}Twitter:${ansi.reset}    ${formatLink('https://x.com/sshirhatti', `${ansi.dim}https://x.com/sshirhatti${ansi.reset}`)}`,
-    `  ${ansi.brightGreen}LinkedIn:${ansi.reset}   ${formatLink('https://linkedin.com/in/shirhatti', `${ansi.dim}https://linkedin.com/in/shirhatti${ansi.reset}`)}`,
+    ...identity.contactLines(formatLink),
     '',
     `  ${ansi.brightWhite}${ansi.bold}Recent Posts:${ansi.reset}`,
     '',
-    ...posts.slice(0, 3).map((post, idx) =>
-      `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${post.slug}`, `${ansi.brightCyan}${post.slug}${ansi.reset}`)} ${ansi.dim}(${post.date}) - ${post.title}${ansi.reset}`
-    ),
+    ...posts
+      .slice(0, 3)
+      .map(
+        (post, idx) =>
+          `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${post.slug}`, `${ansi.brightCyan}${post.slug}${ansi.reset}`)} ${ansi.dim}(${post.date}) - ${post.title}${ansi.reset}`,
+      ),
     '',
     `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
     '',
@@ -152,9 +152,9 @@ export function Terminal() {
         .filter((name) => name.startsWith(prefix))
         .sort()
     } else if (parts.length >= 1) {
-      // Check if first word is cat, bat, or less
+      // Check if first word is cat or less
       const cmdName = parts[0].toLowerCase()
-      if (cmdName === 'cat' || cmdName === 'bat' || cmdName === 'less') {
+      if (cmdName === 'cat' || cmdName === 'less') {
         // Complete post slug
         const lastPart = parts[parts.length - 1]
         prefix = input.endsWith(' ') ? '' : lastPart
@@ -200,7 +200,9 @@ export function Terminal() {
       for (let i = 0; i < matches.length; i += columns) {
         const row = matches.slice(i, i + columns)
         const formattedRow = row
-          .map((m) => `${ansi.brightCyan}${m}${ansi.reset}`.padEnd(columnWidth + 10)) // +10 for ANSI codes
+          .map((m) =>
+            `${ansi.brightCyan}${m}${ansi.reset}`.padEnd(columnWidth + 10),
+          ) // +10 for ANSI codes
           .join('')
         term.writeln(formattedRow)
       }
@@ -255,7 +257,7 @@ export function Terminal() {
       let args = parts.slice(1)
 
       // Special handling for 'll' alias - auto-add -l flag
-      let cmd = findCommand(cmdName)
+      const cmd = findCommand(cmdName)
       if (cmdName === 'll' && cmd) {
         args = ['-l', ...args]
       }
@@ -265,7 +267,9 @@ export function Terminal() {
         navigate: navigateRef.current,
         posts,
         history: historyRef.current,
-        setInputInterceptor: (handler) => { inputInterceptorRef.current = handler },
+        setInputInterceptor: (handler) => {
+          inputInterceptorRef.current = handler
+        },
         openPager: openPagerRef.current,
       }
 
@@ -290,11 +294,17 @@ export function Terminal() {
 
         if (suggestion) {
           term.writeln('')
-          term.writeln(`${ansi.dim}Did you mean ${ansi.reset}${ansi.brightGreen}${suggestion}${ansi.reset}${ansi.dim}?${ansi.reset}`)
-          term.writeln(`${ansi.dim}Try: ${ansi.reset}${ansi.green}${suggestion}${ansi.reset}`)
+          term.writeln(
+            `${ansi.dim}Did you mean ${ansi.reset}${ansi.brightGreen}${suggestion}${ansi.reset}${ansi.dim}?${ansi.reset}`,
+          )
+          term.writeln(
+            `${ansi.dim}Try: ${ansi.reset}${ansi.green}${suggestion}${ansi.reset}`,
+          )
         } else {
           term.writeln('')
-          term.writeln(`${ansi.dim}Type ${ansi.reset}${ansi.green}help${ansi.reset}${ansi.dim} to see all available commands${ansi.reset}`)
+          term.writeln(
+            `${ansi.dim}Type ${ansi.reset}${ansi.green}help${ansi.reset}${ansi.dim} to see all available commands${ansi.reset}`,
+          )
         }
       }
       writePrompt()
@@ -514,8 +524,19 @@ export function Terminal() {
 
   return (
     <>
-      <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div ref={containerRef} className="terminal-content" onClick={handleTerminalClick} />
+      <div
+        style={{
+          position: 'relative',
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          ref={containerRef}
+          className="terminal-content"
+          onClick={handleTerminalClick}
+        />
         {pagerPost && <Pager post={pagerPost} onClose={handlePagerClose} />}
       </div>
 
@@ -558,16 +579,36 @@ export function Terminal() {
           <div className="command-palette">
             <div className="command-palette-section">
               <div className="command-palette-title">Quick Commands</div>
-              <button onClick={() => { runCommand('help'); setShowCommandPalette(false); }}>
+              <button
+                onClick={() => {
+                  runCommand('help')
+                  setShowCommandPalette(false)
+                }}
+              >
                 help - Show available commands
               </button>
-              <button onClick={() => { runCommand('ls'); setShowCommandPalette(false); }}>
+              <button
+                onClick={() => {
+                  runCommand('ls')
+                  setShowCommandPalette(false)
+                }}
+              >
                 ls - List all posts
               </button>
-              <button onClick={() => { runCommand('clear'); setShowCommandPalette(false); }}>
+              <button
+                onClick={() => {
+                  runCommand('clear')
+                  setShowCommandPalette(false)
+                }}
+              >
                 clear - Clear terminal
               </button>
-              <button onClick={() => { runCommand('whoami'); setShowCommandPalette(false); }}>
+              <button
+                onClick={() => {
+                  runCommand('whoami')
+                  setShowCommandPalette(false)
+                }}
+              >
                 whoami - About me
               </button>
             </div>

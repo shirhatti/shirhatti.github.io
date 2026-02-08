@@ -103,7 +103,11 @@ export function Pager({ post, onClose }: PagerProps) {
             </span>
           ))}
         </div>
-        <button className="pager-close-btn" onClick={onClose} aria-label="Close pager">
+        <button
+          className="pager-close-btn"
+          onClick={onClose}
+          aria-label="Close pager"
+        >
           ✕
         </button>
       </div>
@@ -116,13 +120,25 @@ export function Pager({ post, onClose }: PagerProps) {
       </div>
 
       <div className="pager-status-bar">
-        <span>{post.slug} — {scrollPercent}%</span>
+        <span>
+          {post.slug} — {scrollPercent}%
+        </span>
         <div className="pager-keys">
-          <span><kbd>j</kbd>/<kbd>k</kbd> scroll</span>
-          <span><kbd>Space</kbd>/<kbd>b</kbd> page</span>
-          <span><kbd>q</kbd> close</span>
+          <span>
+            <kbd>j</kbd>/<kbd>k</kbd> scroll
+          </span>
+          <span>
+            <kbd>Space</kbd>/<kbd>b</kbd> page
+          </span>
+          <span>
+            <kbd>q</kbd> close
+          </span>
         </div>
-        <button className="pager-close-btn" onClick={onClose} aria-label="Close pager">
+        <button
+          className="pager-close-btn"
+          onClick={onClose}
+          aria-label="Close pager"
+        >
           ✕
         </button>
       </div>

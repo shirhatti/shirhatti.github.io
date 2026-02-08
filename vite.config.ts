@@ -88,7 +88,13 @@ export default defineConfig({
   },
   // Optimize dependencies
   optimizeDeps: {
-    include: ['react', 'react-dom', '@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-image'],
+    include: [
+      'react',
+      'react-dom',
+      '@xterm/xterm',
+      '@xterm/addon-fit',
+      '@xterm/addon-image',
+    ],
   },
   test: {
     include: ['src/**/*.test.ts'],

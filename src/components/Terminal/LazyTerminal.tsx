@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react'
 import { TerminalSkeleton } from './TerminalSkeleton'
 
 const Terminal = lazy(() =>
-  import('./Terminal').then(module => ({ default: module.Terminal }))
+  import('./Terminal').then((module) => ({ default: module.Terminal })),
 )
 
 export function LazyTerminal() {

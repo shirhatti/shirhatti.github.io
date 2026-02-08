@@ -45,7 +45,9 @@ const getTerminalOptions = () => ({
   },
 })
 
-export function useTerminal(containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useTerminal(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
 

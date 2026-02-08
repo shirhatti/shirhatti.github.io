@@ -37,7 +37,7 @@ export function calculateStats(posts: Post[]): BlogStats {
 
   // Sort posts by date to find oldest and newest
   const sortedPosts = [...posts].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   )
 
   return {
@@ -50,7 +50,10 @@ export function calculateStats(posts: Post[]): BlogStats {
   }
 }
 
-export function getTopTags(tags: Map<string, number>, limit = 5): [string, number][] {
+export function getTopTags(
+  tags: Map<string, number>,
+  limit = 5,
+): [string, number][] {
   return Array.from(tags.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)

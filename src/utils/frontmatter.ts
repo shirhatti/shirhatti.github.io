@@ -59,6 +59,7 @@ export function parseFrontMatter(raw: string): ParsedPost {
  * - key: (arrays on next lines with - prefix)
  */
 function parseYamlSubset(lines: string[]): FrontMatter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: Record<string, any> = {}
   let currentKey: string | null = null
   let currentArray: string[] = []

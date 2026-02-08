@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
+/* eslint-disable no-control-regex */
 import { describe, it, expect } from 'vitest'
 import { ansi } from './ansi'
-import { formatPostAsBat, _internal } from './bat'
+import { formatPostAsBat, _internal } from './cat'
 import type { Post } from '../data/types'
 
-const { wrapAnsi, visibleLength, tokenize, renderInlineMarkdown, highlightSyntax } = _internal
+const {
+  wrapAnsi,
+  visibleLength,
+  tokenize,
+  renderInlineMarkdown,
+  highlightSyntax,
+} = _internal
 
 // Helper: strip all ANSI/OSC escapes to get visible text
 function strip(s: string): string {
@@ -107,7 +114,8 @@ describe('wrapAnsi', () => {
     const result = wrapAnsi(link, 10)
     // Each line that continues a link should have its own OSC open and close
     for (const line of result) {
-      const opens = (line.match(/\x1b\]8;;https:\/\/example\.com\x1b\\/g) || []).length
+      const opens = (line.match(/\x1b\]8;;https:\/\/example\.com\x1b\\/g) || [])
+        .length
       const closes = (line.match(/\x1b\]8;;\x1b\\/g) || []).length
       // Every line with link content should have balanced open/close
       if (opens > 0 || closes > 0) {
@@ -273,7 +281,10 @@ describe('highlightSyntax', () => {
 
   it('processes inline markdown in regular paragraphs', () => {
     const state = { inCodeBlock: false, codeLang: '' }
-    const result = highlightSyntax('Visit [site](https://example.com) now', state)
+    const result = highlightSyntax(
+      'Visit [site](https://example.com) now',
+      state,
+    )
     expect(result).toContain('\x1b]8;;https://example.com\x1b\\')
     expect(strip(result)).toBe('Visit site now')
   })
@@ -311,7 +322,8 @@ describe('formatPostAsBat', () => {
   it('wraps long lines within cols boundary', () => {
     const longPost: Post = {
       ...post,
-      content: 'This is a very long line that should be wrapped because it exceeds the column width that we have set for the terminal display output',
+      content:
+        'This is a very long line that should be wrapped because it exceeds the column width that we have set for the terminal display output',
     }
     const result = formatPostAsBat(longPost, { cols: 40 })
     const lines = result.split('\r\n')
@@ -334,7 +346,8 @@ describe('formatPostAsBat', () => {
   it('does not break link syntax across wrapped lines', () => {
     const linkPost: Post = {
       ...post,
-      content: 'I recommend reading [Jeff Atwood](https://twitter.com/codinghorror) for programming insights',
+      content:
+        'I recommend reading [Jeff Atwood](https://twitter.com/codinghorror) for programming insights',
     }
     const result = formatPostAsBat(linkPost, { cols: 50 })
     // The OSC 8 link should be intact somewhere in the output
@@ -345,7 +358,8 @@ describe('formatPostAsBat', () => {
   it('wraps every line within cols boundary including lines with links', () => {
     const linkPost: Post = {
       ...post,
-      content: 'Both [Let\'s Encrypt](https://letsencrypt.org/) and [Cloudflare](https://www.cloudflare.com/) have recently started offering free Domain Validated certificates for personal websites.',
+      content:
+        "Both [Let's Encrypt](https://letsencrypt.org/) and [Cloudflare](https://www.cloudflare.com/) have recently started offering free Domain Validated certificates for personal websites.",
     }
     const result = formatPostAsBat(linkPost, { cols: 80 })
     const lines = result.split('\r\n')
@@ -357,7 +371,8 @@ describe('formatPostAsBat', () => {
   it('wraps real blog content with multiple links within cols', () => {
     const realPost: Post = {
       ...post,
-      content: 'While I don\'t expect to do any payment processing on my personal blog nor do I serve up any login page, having an SSL issued from a trusted CA will still protect readers of my blog from a [Man-in-the-middle (MITM) attack](https://wikipedia.org/wiki/Man-in-the-middle_attack). Additionally, a huge motivation for me to use SSL was that Google now uses [HTTPS as a ranking signal](https://security.googleblog.com/2014/08/https-as-ranking-signal_6.html).',
+      content:
+        "While I don't expect to do any payment processing on my personal blog nor do I serve up any login page, having an SSL issued from a trusted CA will still protect readers of my blog from a [Man-in-the-middle (MITM) attack](https://wikipedia.org/wiki/Man-in-the-middle_attack). Additionally, a huge motivation for me to use SSL was that Google now uses [HTTPS as a ranking signal](https://security.googleblog.com/2014/08/https-as-ranking-signal_6.html).",
     }
     const cols = 110
     const result = formatPostAsBat(realPost, { cols })
@@ -366,7 +381,9 @@ describe('formatPostAsBat', () => {
     for (const line of lines) {
       const vl = visibleLength(line)
       if (vl > cols) {
-        failures.push(`visibleLength=${vl} > ${cols}: "${strip(line).substring(0, 60)}..."`)
+        failures.push(
+          `visibleLength=${vl} > ${cols}: "${strip(line).substring(0, 60)}..."`,
+        )
       }
     }
     expect(failures).toEqual([])
@@ -375,10 +392,13 @@ describe('formatPostAsBat', () => {
   it('does not wrap iTerm2 image sequences', () => {
     const imgPost: Post = {
       ...post,
-      content: '\x1b]1337;File=inline=1;size=100;width=40:base64base64base64base64\x07',
+      content:
+        '\x1b]1337;File=inline=1;size=100;width=40:base64base64base64base64\x07',
     }
     const result = formatPostAsBat(imgPost, { cols: 40 })
     // The image sequence should pass through intact
-    expect(result).toContain('\x1b]1337;File=inline=1;size=100;width=40:base64base64base64base64\x07')
+    expect(result).toContain(
+      '\x1b]1337;File=inline=1;size=100;width=40:base64base64base64base64\x07',
+    )
   })
 })

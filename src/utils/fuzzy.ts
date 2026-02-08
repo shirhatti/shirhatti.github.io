@@ -30,8 +30,8 @@ export function levenshteinDistance(a: string, b: string): number {
         // - deletion (top)
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j] + 1, // deletion
         )
       }
     }
@@ -47,13 +47,16 @@ export function levenshteinDistance(a: string, b: string): number {
 export function findClosestMatch(
   input: string,
   candidates: string[],
-  threshold: number = 2
+  threshold: number = 2,
 ): string | null {
   let bestMatch: string | null = null
   let bestDistance = Infinity
 
   for (const candidate of candidates) {
-    const distance = levenshteinDistance(input.toLowerCase(), candidate.toLowerCase())
+    const distance = levenshteinDistance(
+      input.toLowerCase(),
+      candidate.toLowerCase(),
+    )
 
     // Only consider matches within the threshold and better than previous best
     if (distance <= threshold && distance < bestDistance) {

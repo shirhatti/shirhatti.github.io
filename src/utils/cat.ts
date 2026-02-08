@@ -1,6 +1,14 @@
 import { ansi, formatLink } from './ansi'
 import type { Post } from '../data/types'
 
+/* eslint-disable no-control-regex */
+const RE_OSC8_LINK = /\x1b\]8;;([^\x07\x1b]*?)(?:\x07|\x1b\\)/g
+const RE_OSC = /\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g
+const RE_CSI = /\x1b\[([0-9;]*[a-zA-Z])/g
+const RE_TOKEN =
+  /(\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;]*[a-zA-Z]|\s+|[^\s\x1b]+)/g
+/* eslint-enable no-control-regex */
+
 const BOX_CHARS = {
   horizontal: '─',
   vertical: '│',
@@ -23,14 +31,8 @@ interface BatOptions {
 /**
  * Format a post in bat-style with header and syntax highlighting
  */
-export function formatPostAsBat(
-  post: Post,
-  options: BatOptions = {}
-): string {
-  const {
-    showHeader = true,
-    cols = 80,
-  } = options
+export function formatPostAsBat(post: Post, options: BatOptions = {}): string {
+  const { showHeader = true, cols = 80 } = options
 
   const lines = post.content.split('\r\n')
   const output: string[] = []
@@ -49,10 +51,10 @@ export function formatPostAsBat(
     const filePath = `File: posts/${dateParts[0]}/${dateParts[1]}/${dateParts[2]}-${post.slug}.md`
     const metadata = `${post.date} • ${post.tags.join(', ')}`
     output.push(
-      `${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.bold}${ansi.brightCyan}${filePath}${ansi.reset}`
+      `${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.bold}${ansi.brightCyan}${filePath}${ansi.reset}`,
     )
     output.push(
-      `${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.dim}${metadata}${ansi.reset}`
+      `${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.dim}${metadata}${ansi.reset}`,
     )
     output.push(`${ansi.dim}${headerLine}${ansi.reset}`)
   }
@@ -73,7 +75,9 @@ export function formatPostAsBat(
 
   // Footer separator
   if (showHeader) {
-    output.push(`${ansi.dim}${BOX_CHARS.horizontal.repeat(headerWidth)}${ansi.reset}`)
+    output.push(
+      `${ansi.dim}${BOX_CHARS.horizontal.repeat(headerWidth)}${ansi.reset}`,
+    )
   }
 
   output.push('')
@@ -102,10 +106,10 @@ function wrapAnsi(text: string, maxWidth: number): string[] {
 
   /** Scan a token's escape sequences and update activeLink/activeStyles. */
   const updateState = (token: string) => {
-    for (const m of token.matchAll(/\x1b\]8;;([^\x07\x1b]*?)(?:\x07|\x1b\\)/g)) {
+    for (const m of token.matchAll(RE_OSC8_LINK)) {
       activeLink = m[1] // empty string = link close, non-empty = link open
     }
-    for (const m of token.matchAll(/\x1b\[([0-9;]*[a-zA-Z])/g)) {
+    for (const m of token.matchAll(RE_CSI)) {
       if (m[1] === '0m') {
         activeStyles = []
       } else {
@@ -168,22 +172,18 @@ function wrapAnsi(text: string, maxWidth: number): string[] {
 
 /** Measure visible length, stripping ANSI escapes and OSC 8 sequences. */
 function visibleLength(s: string): number {
-  return s
-    .replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, '') // OSC sequences (links)
-    .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')            // CSI sequences
-    .length
+  return s.replace(RE_OSC, '').replace(RE_CSI, '').length
 }
 
 /** Split ANSI text into word and whitespace tokens, keeping escapes attached. */
 function tokenize(text: string): string[] {
   const tokens: string[] = []
-  // Match: ANSI/OSC sequences, whitespace runs, or non-whitespace runs
-  const re = /(\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;]*[a-zA-Z]|\s+|[^\s\x1b]+)/g
+  RE_TOKEN.lastIndex = 0
   let match: RegExpExecArray | null
   let current = ''
   let currentIsWord = true
 
-  while ((match = re.exec(text)) !== null) {
+  while ((match = RE_TOKEN.exec(text)) !== null) {
     const part = match[1]
     const isEscape = part[0] === '\x1b'
     const isSpace = !isEscape && /^\s+$/.test(part)
@@ -255,7 +255,10 @@ function renderInlineMarkdown(text: string): string {
         if (urlEnd !== -1) {
           const linkText = text.slice(i + 1, textEnd)
           const url = text.slice(textEnd + 2, urlEnd)
-          result += formatLink(url, `${ansi.underline}${ansi.brightCyan}${linkText}${ansi.reset}`)
+          result += formatLink(
+            url,
+            `${ansi.underline}${ansi.brightCyan}${linkText}${ansi.reset}`,
+          )
           i = urlEnd + 1
           continue
         }
@@ -263,8 +266,10 @@ function renderInlineMarkdown(text: string): string {
     }
 
     // Bold: **text** or __text__
-    if ((text[i] === '*' && text[i + 1] === '*') ||
-        (text[i] === '_' && text[i + 1] === '_')) {
+    if (
+      (text[i] === '*' && text[i + 1] === '*') ||
+      (text[i] === '_' && text[i + 1] === '_')
+    ) {
       const marker = text.slice(i, i + 2)
       const end = text.indexOf(marker, i + 2)
       if (end !== -1) {
@@ -384,20 +389,30 @@ function getTagColor(tag: string): string {
   }
 
   // Programming/dev tags
-  if (tagLower.includes('programming') || tagLower.includes('webdev') ||
-      tagLower.includes('react') || tagLower.includes('code')) {
+  if (
+    tagLower.includes('programming') ||
+    tagLower.includes('webdev') ||
+    tagLower.includes('react') ||
+    tagLower.includes('code')
+  ) {
     return ansi.brightBlue
   }
 
   // Tools/productivity tags
-  if (tagLower.includes('vim') || tagLower.includes('productivity') ||
-      tagLower.includes('tools')) {
+  if (
+    tagLower.includes('vim') ||
+    tagLower.includes('productivity') ||
+    tagLower.includes('tools')
+  ) {
     return ansi.brightYellow
   }
 
   // Tutorial/guide tags
-  if (tagLower.includes('tutorial') || tagLower.includes('guide') ||
-      tagLower.includes('howto')) {
+  if (
+    tagLower.includes('tutorial') ||
+    tagLower.includes('guide') ||
+    tagLower.includes('howto')
+  ) {
     return ansi.brightGreen
   }
 
@@ -409,18 +424,25 @@ function getTagColor(tag: string): string {
  * Get icon/symbol for post based on tags
  */
 function getPostIcon(post: Post): string {
-  const tags = post.tags.map(t => t.toLowerCase())
+  const tags = post.tags.map((t) => t.toLowerCase())
 
-  if (tags.some(t => t.includes('meta') || t.includes('intro'))) {
+  if (tags.some((t) => t.includes('meta') || t.includes('intro'))) {
     return '📝'
   }
-  if (tags.some(t => t.includes('programming') || t.includes('webdev') || t.includes('react'))) {
+  if (
+    tags.some(
+      (t) =>
+        t.includes('programming') ||
+        t.includes('webdev') ||
+        t.includes('react'),
+    )
+  ) {
     return '💻'
   }
-  if (tags.some(t => t.includes('vim') || t.includes('productivity'))) {
+  if (tags.some((t) => t.includes('vim') || t.includes('productivity'))) {
     return '⚡'
   }
-  if (tags.some(t => t.includes('tutorial') || t.includes('guide'))) {
+  if (tags.some((t) => t.includes('tutorial') || t.includes('guide'))) {
     return '📖'
   }
 
@@ -431,10 +453,12 @@ function getPostIcon(post: Post): string {
  * Format tags with color-coding
  */
 function formatTags(tags: string[]): string {
-  return tags.map(tag => {
-    const color = getTagColor(tag)
-    return `${color}${tag}${ansi.reset}`
-  }).join(`${ansi.dim}, ${ansi.reset}`)
+  return tags
+    .map((tag) => {
+      const color = getTagColor(tag)
+      return `${color}${tag}${ansi.reset}`
+    })
+    .join(`${ansi.dim}, ${ansi.reset}`)
 }
 
 export interface LsOptions {
@@ -456,23 +480,24 @@ export function formatLsOutput(posts: Post[], options: LsOptions = {}): string {
     sortedPosts = sortedPosts.sort((a, b) => a.title.localeCompare(b.title))
   } else {
     // Already sorted by date in posts.ts, but re-sort to be explicit
-    sortedPosts = sortedPosts.sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+    sortedPosts = sortedPosts.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     )
   }
 
   // Post count summary at the top
   output.push('')
   const countHeader = `${ansi.bold}${ansi.brightCyan}Posts: ${sortedPosts.length}${ansi.reset}`
-  const sortInfo = sortBy === 'title'
-    ? `${ansi.dim}(sorted by title)${ansi.reset}`
-    : `${ansi.dim}(sorted by date)${ansi.reset}`
+  const sortInfo =
+    sortBy === 'title'
+      ? `${ansi.dim}(sorted by title)${ansi.reset}`
+      : `${ansi.dim}(sorted by date)${ansi.reset}`
   output.push(`${countHeader} ${sortInfo}`)
 
   // Count by tag category
   const tagCounts = new Map<string, number>()
-  sortedPosts.forEach(post => {
-    post.tags.forEach(tag => {
+  sortedPosts.forEach((post) => {
+    post.tags.forEach((tag) => {
       tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
     })
   })
@@ -502,20 +527,28 @@ export function formatLsOutput(posts: Post[], options: LsOptions = {}): string {
       const tags = formatTags(post.tags)
 
       output.push(`${icon} ${date}  ${slug}  ${title}`)
-      output.push(`${' '.repeat(4)}${ansi.dim}[${ansi.reset}${tags}${ansi.dim}]${ansi.reset}`)
+      output.push(
+        `${' '.repeat(4)}${ansi.dim}[${ansi.reset}${tags}${ansi.dim}]${ansi.reset}`,
+      )
 
       // Show all metadata if -a flag is used
       if (showAll) {
         if (post.excerpt) {
-          output.push(`${' '.repeat(4)}${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.italic}${ansi.gray}${post.excerpt}${ansi.reset}`)
+          output.push(
+            `${' '.repeat(4)}${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.italic}${ansi.gray}${post.excerpt}${ansi.reset}`,
+          )
         }
         const wordCount = post.content.split(/\s+/).length
         const readTime = Math.ceil(wordCount / 200) // ~200 words per minute
-        output.push(`${' '.repeat(4)}${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.dim}${wordCount} words • ~${readTime} min read${ansi.reset}`)
+        output.push(
+          `${' '.repeat(4)}${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${ansi.dim}${wordCount} words • ~${readTime} min read${ansi.reset}`,
+        )
       }
 
       if (idx < sortedPosts.length - 1) {
-        output.push(`${ansi.dim}${BOX_CHARS.horizontal.repeat(80)}${ansi.reset}`)
+        output.push(
+          `${ansi.dim}${BOX_CHARS.horizontal.repeat(80)}${ansi.reset}`,
+        )
       }
     })
 
@@ -553,7 +586,6 @@ export interface GrepMatch {
 export function formatGrepOutput(
   matches: GrepMatch[],
   _pattern: string,
-  _caseInsensitive: boolean
 ): string {
   if (matches.length === 0) {
     return `\r\n${ansi.dim}No matches found${ansi.reset}\r\n`
@@ -585,7 +617,7 @@ export function formatGrepOutput(
       const lineNum = match.lineNum - match.contextBefore.length + i
       const lineNumStr = String(lineNum).padStart(lineNumWidth, ' ')
       output.push(
-        `${ansi.dim}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${contextLine}`
+        `${ansi.dim}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${contextLine}`,
       )
     })
 
@@ -595,17 +627,17 @@ export function formatGrepOutput(
       match.line,
       _pattern,
       match.matchIndex,
-      match.matchLength
+      match.matchLength,
     )
     output.push(
-      `${ansi.brightYellow}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${highlightedLine}`
+      `${ansi.brightYellow}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${highlightedLine}`,
     )
 
     // Show match indicator
     const spacesBeforeMatch = ' '.repeat(match.matchIndex)
     const carets = '^'.repeat(match.matchLength)
     output.push(
-      `${ansi.dim}${' '.repeat(lineNumWidth + 3)}${BOX_CHARS.vertical}${ansi.reset} ${spacesBeforeMatch}${ansi.brightRed}${carets}${ansi.reset}`
+      `${ansi.dim}${' '.repeat(lineNumWidth + 3)}${BOX_CHARS.vertical}${ansi.reset} ${spacesBeforeMatch}${ansi.brightRed}${carets}${ansi.reset}`,
     )
 
     // Context after
@@ -613,7 +645,7 @@ export function formatGrepOutput(
       const lineNum = match.lineNum + i + 1
       const lineNumStr = String(lineNum).padStart(lineNumWidth, ' ')
       output.push(
-        `${ansi.dim}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${contextLine}`
+        `${ansi.dim}${lineNumStr}${ansi.reset} ${ansi.dim}${BOX_CHARS.vertical}${ansi.reset} ${contextLine}`,
       )
     })
 
@@ -622,14 +654,16 @@ export function formatGrepOutput(
       const nextMatch = matches[idx + 1]
       const nextPostPath = `posts/${nextMatch.post.date.split('-').join('/')}/${nextMatch.post.slug}.md`
       if (postPath === nextPostPath) {
-        output.push(`${ansi.dim}  ${BOX_CHARS.horizontal.repeat(78)}${ansi.reset}`)
+        output.push(
+          `${ansi.dim}  ${BOX_CHARS.horizontal.repeat(78)}${ansi.reset}`,
+        )
       }
     }
   })
 
   output.push('')
   output.push(
-    `${ansi.dim}Found ${ansi.reset}${ansi.brightGreen}${matches.length}${ansi.reset}${ansi.dim} match${matches.length !== 1 ? 'es' : ''}${ansi.reset}`
+    `${ansi.dim}Found ${ansi.reset}${ansi.brightGreen}${matches.length}${ansi.reset}${ansi.dim} match${matches.length !== 1 ? 'es' : ''}${ansi.reset}`,
   )
   output.push('')
 
@@ -652,7 +686,7 @@ function highlightMatch(
   line: string,
   _pattern: string,
   matchIndex: number,
-  matchLength: number
+  matchLength: number,
 ): string {
   const before = line.substring(0, matchIndex)
   const match = line.substring(matchIndex, matchIndex + matchLength)

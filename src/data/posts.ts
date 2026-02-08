@@ -19,7 +19,7 @@ export const posts: Post[] = Object.entries(postFiles)
   .map(([filepath, content]) => {
     // Parse frontmatter and content
     const { data: frontmatter, content: markdown } = parseFrontMatter(
-      content as string
+      content as string,
     )
 
     // Extract slug from filepath

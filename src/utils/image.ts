@@ -31,7 +31,9 @@ export function findImagePlaceholders(content: string): ImagePlaceholder[] {
 /**
  * Fetch an image URL and return its base64-encoded data
  */
-async function fetchImageAsBase64(url: string): Promise<{ base64: string; size: number } | null> {
+async function fetchImageAsBase64(
+  url: string,
+): Promise<{ base64: string; size: number } | null> {
   try {
     const response = await fetch(url)
     if (!response.ok) return null
@@ -56,7 +58,11 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; size: 
 /**
  * Generate an iTerm2 inline image escape sequence
  */
-function iterm2ImageSequence(base64: string, size: number, width: number): string {
+function iterm2ImageSequence(
+  base64: string,
+  size: number,
+  width: number,
+): string {
   return `\x1b]1337;File=inline=1;size=${size};width=${width}:${base64}\x07`
 }
 
@@ -67,7 +73,7 @@ function iterm2ImageSequence(base64: string, size: number, width: number): strin
 export async function processImagesForTerminal(
   content: string,
   images: Record<string, string>,
-  termCols: number
+  termCols: number,
 ): Promise<string> {
   const placeholders = findImagePlaceholders(content)
   if (placeholders.length === 0) return content
@@ -95,7 +101,11 @@ export async function processImagesForTerminal(
       continue
     }
 
-    const sequence = iterm2ImageSequence(imageData.base64, imageData.size, imageWidth)
+    const sequence = iterm2ImageSequence(
+      imageData.base64,
+      imageData.size,
+      imageWidth,
+    )
     // Add dim alt-text caption below the image
     const caption = placeholder.alt
       ? `\r\n\x1b[2m  ${placeholder.alt}\x1b[0m`

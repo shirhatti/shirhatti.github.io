@@ -5,5 +5,5 @@ export interface Post {
   tags: string[]
   excerpt: string
   content: string
-  images: Record<string, string>  // filename → Vite-resolved URL
+  images: Record<string, string> // filename → Vite-resolved URL
 }

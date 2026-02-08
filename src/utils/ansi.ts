@@ -38,12 +38,29 @@ export const formatDim = (t: string) => `${D}${t}${R}`
 const PROMPT = `\x1b[92mvisitor\x1b[0m\x1b[90m@\x1b[0m\x1b[96mshirhatti.com\x1b[0m\x1b[90m:\x1b[0m\x1b[94m~\x1b[0m\x1b[90m$ \x1b[0m`
 export const formatPrompt = () => PROMPT
 
+// Shared identity block used by welcome banner and whoami
+export const identity = {
+  headerBox: [
+    `${B}${ansi.brightCyan}┌─────────────────────────────────────────────────────────────┐${R}`,
+    `${B}${ansi.brightCyan}│${R}  ${B}${ansi.brightWhite}SOURABH SHIRHATTI${R}${' '.repeat(42)}${B}${ansi.brightCyan}│${R}`,
+    `${B}${ansi.brightCyan}│${R}  ${D}Builder, Product Manager, and Developer${R}${' '.repeat(20)}${B}${ansi.brightCyan}│${R}`,
+    `${B}${ansi.brightCyan}└─────────────────────────────────────────────────────────────┘${R}`,
+  ],
+  contactLines: (link: typeof formatLink) => [
+    `  ${ansi.brightGreen}Email:${R}      ${D}sourabh\u200B[AT]\u200Bmail\u200B.\u200Bshirhatti\u200B.\u200Bcom${R}`,
+    `  ${ansi.brightGreen}GitHub:${R}     ${link('https://github.com/shirhatti', `${D}https://github.com/shirhatti${R}`)}`,
+    `  ${ansi.brightGreen}Twitter:${R}    ${link('https://x.com/sshirhatti', `${D}https://x.com/sshirhatti${R}`)}`,
+    `  ${ansi.brightGreen}LinkedIn:${R}   ${link('https://linkedin.com/in/shirhatti', `${D}https://linkedin.com/in/shirhatti${R}`)}`,
+  ],
+}
+
 // OSC 8 hyperlink support for terminal
 // OSC 8 format: \x1b]8;;URL\x1b\\TEXT\x1b]8;;\x1b\\
 export const formatLink = (url: string, text: string) => {
   // Ensure we have a full URL for the link to work
-  const fullUrl = url.startsWith('http') || url.startsWith('mailto:')
-    ? url
-    : `${window.location.origin}${window.location.pathname}${url}`
+  const fullUrl =
+    url.startsWith('http') || url.startsWith('mailto:')
+      ? url
+      : `${window.location.origin}${window.location.pathname}${url}`
   return `\x1b]8;;${fullUrl}\x1b\\${text}\x1b]8;;\x1b\\`
 }
