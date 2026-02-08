@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useState, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import * as stylex from '@stylexjs/stylex'
 import { useTerminal } from './useTerminal'
 import { commands, findCommand } from '../../commands'
 import type { CommandContext } from '../../commands'
@@ -18,6 +19,196 @@ import {
   type OverlayState,
 } from '../../overlays'
 import './Terminal.css'
+
+const MOBILE = '@media (max-width: 768px)'
+const XSMALL = '@media (max-width: 480px)'
+const DESKTOP = '@media (min-width: 769px)'
+
+const slideUp = stylex.keyframes({
+  from: { opacity: 0, transform: 'translateY(20px)' },
+  to: { opacity: 1, transform: 'translateY(0)' },
+})
+
+const styles = stylex.create({
+  wrapper: {
+    position: 'relative',
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  terminalContent: {
+    flex: 1,
+    padding: {
+      default: 8,
+      [MOBILE]: 6,
+    },
+    overflow: 'hidden',
+    marginBottom: {
+      default: 0,
+      [MOBILE]: 50,
+    },
+  },
+  mobileBottomBar: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    display: {
+      default: 'flex',
+      [DESKTOP]: 'none',
+    },
+    alignItems: 'center',
+    background: '#2d2d2d',
+    borderTop: 'none',
+    boxShadow: '0 -1px 0 #3c3c3c',
+    zIndex: 100,
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+  },
+  mobileInput: {
+    flex: 1,
+    minWidth: 0,
+    padding: {
+      default: '12px 16px',
+      [XSMALL]: '10px 12px',
+    },
+    fontFamily: "'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace",
+    fontSize: 16,
+    background: {
+      default: 'transparent',
+      ':focus': 'rgba(255, 255, 255, 0.03)',
+    },
+    color: '#d4d4d4',
+    border: 'none',
+    outline: {
+      default: 'revert',
+      ':focus': 'none',
+    },
+    '::placeholder': {
+      color: '#999',
+    },
+  },
+  commandPaletteToggle: {
+    position: 'fixed',
+    bottom: 16,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #0dbc79, #23d18b)',
+    color: '#1e1e1e',
+    border: 'none',
+    fontSize: 24,
+    fontWeight: 'bold',
+    boxShadow: {
+      default: '0 4px 12px rgba(13, 188, 121, 0.4)',
+      ':active': '0 2px 8px rgba(13, 188, 121, 0.3)',
+    },
+    cursor: 'pointer',
+    zIndex: 101,
+    display: {
+      default: 'flex',
+      [MOBILE]: 'none',
+    },
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+    transform: {
+      default: 'none',
+      ':active': 'scale(0.95)',
+    },
+  },
+  commandPaletteToggleFocusVisible: {
+    outline: {
+      default: 'revert',
+      ':focus-visible': '2px solid #0dbc79',
+    },
+    outlineOffset: {
+      default: 0,
+      ':focus-visible': 2,
+    },
+  },
+  inlineToggle: {
+    position: 'static',
+    width: 44,
+    height: 44,
+    minWidth: 44,
+    borderRadius: 0,
+    background: {
+      default: 'transparent',
+      ':active': '#3c3c3c',
+    },
+    color: '#0dbc79',
+    boxShadow: 'none',
+    fontSize: 20,
+    borderLeft: '1px solid #3c3c3c',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+  },
+  commandPalette: {
+    position: 'fixed',
+    bottom: {
+      default: 120,
+      [MOBILE]: 50,
+    },
+    left: 8,
+    right: 8,
+    maxHeight: '60vh',
+    background: '#2d2d2d',
+    border: '1px solid #3c3c3c',
+    borderRadius: 8,
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
+    overflowY: 'auto',
+    zIndex: 99,
+    animationName: slideUp,
+    animationDuration: '0.2s',
+    animationTimingFunction: 'ease-out',
+  },
+  section: {
+    padding: '12px 0',
+    borderBottom: '1px solid #3c3c3c',
+    ':last-child': {
+      borderBottom: 'none',
+    },
+  },
+  sectionTitle: {
+    padding: '0 16px 8px',
+    color: '#999',
+    fontSize: 12,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  paletteButton: {
+    width: '100%',
+    padding: '12px 16px',
+    background: {
+      default: 'transparent',
+      ':active': '#3c3c3c',
+    },
+    color: '#d4d4d4',
+    border: 'none',
+    textAlign: 'left',
+    fontFamily: "'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace",
+    fontSize: 14,
+    cursor: 'pointer',
+    transition: 'background-color 0.15s',
+    WebkitTapHighlightColor: 'transparent',
+  },
+  paletteButtonFocusVisible: {
+    outline: {
+      default: 'revert',
+      ':focus-visible': '2px solid #0dbc79',
+    },
+    outlineOffset: {
+      default: 0,
+      ':focus-visible': -2,
+    },
+  },
+})
 
 function getWelcomeBanner(): string {
   return [
@@ -524,17 +715,10 @@ export function Terminal() {
 
   return (
     <>
-      <div
-        style={{
-          position: 'relative',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+      <div {...stylex.props(styles.wrapper)}>
         <div
           ref={containerRef}
-          className="terminal-content"
+          className={`terminal-content ${stylex.props(styles.terminalContent).className ?? ''}`}
           onClick={handleTerminalClick}
         />
         {overlay &&
@@ -550,11 +734,11 @@ export function Terminal() {
 
       <>
         {!overlay && (
-          <div className="mobile-bottom-bar">
+          <div {...stylex.props(styles.mobileBottomBar)}>
             <input
               ref={mobileInputRef}
               type="text"
-              className="mobile-input"
+              {...stylex.props(styles.mobileInput)}
               onKeyDown={handleMobileInput}
               onChange={handleMobileInputChange}
               placeholder="Type command..."
@@ -564,30 +748,37 @@ export function Terminal() {
               spellCheck={false}
             />
             <button
-              className="command-palette-toggle"
+              {...stylex.props(styles.inlineToggle)}
               onClick={() => setShowCommandPalette(!showCommandPalette)}
               aria-label="Toggle command palette"
             >
-              {showCommandPalette ? '✕' : '⌘'}
+              {showCommandPalette ? '\u2715' : '\u2318'}
             </button>
           </div>
         )}
 
         {!overlay && (
           <button
-            className="command-palette-toggle desktop-only"
+            {...stylex.props(
+              styles.commandPaletteToggle,
+              styles.commandPaletteToggleFocusVisible,
+            )}
             onClick={() => setShowCommandPalette(!showCommandPalette)}
             aria-label="Toggle command palette"
           >
-            {showCommandPalette ? '✕' : '⌘'}
+            {showCommandPalette ? '\u2715' : '\u2318'}
           </button>
         )}
 
         {showCommandPalette && (
-          <div className="command-palette">
-            <div className="command-palette-section">
-              <div className="command-palette-title">Quick Commands</div>
+          <div {...stylex.props(styles.commandPalette)}>
+            <div {...stylex.props(styles.section)}>
+              <div {...stylex.props(styles.sectionTitle)}>Quick Commands</div>
               <button
+                {...stylex.props(
+                  styles.paletteButton,
+                  styles.paletteButtonFocusVisible,
+                )}
                 onClick={() => {
                   runCommand('help')
                   setShowCommandPalette(false)
@@ -596,6 +787,10 @@ export function Terminal() {
                 help - Show available commands
               </button>
               <button
+                {...stylex.props(
+                  styles.paletteButton,
+                  styles.paletteButtonFocusVisible,
+                )}
                 onClick={() => {
                   runCommand('ls')
                   setShowCommandPalette(false)
@@ -604,6 +799,10 @@ export function Terminal() {
                 ls - List all posts
               </button>
               <button
+                {...stylex.props(
+                  styles.paletteButton,
+                  styles.paletteButtonFocusVisible,
+                )}
                 onClick={() => {
                   runCommand('clear')
                   setShowCommandPalette(false)
@@ -612,6 +811,10 @@ export function Terminal() {
                 clear - Clear terminal
               </button>
               <button
+                {...stylex.props(
+                  styles.paletteButton,
+                  styles.paletteButtonFocusVisible,
+                )}
                 onClick={() => {
                   runCommand('whoami')
                   setShowCommandPalette(false)
@@ -622,11 +825,15 @@ export function Terminal() {
             </div>
 
             {posts.length > 0 && (
-              <div className="command-palette-section">
-                <div className="command-palette-title">Recent Posts</div>
+              <div {...stylex.props(styles.section)}>
+                <div {...stylex.props(styles.sectionTitle)}>Recent Posts</div>
                 {posts.slice(0, 5).map((post) => (
                   <button
                     key={post.slug}
+                    {...stylex.props(
+                      styles.paletteButton,
+                      styles.paletteButtonFocusVisible,
+                    )}
                     onClick={() => {
                       runCommand(`less ${post.slug}`)
                       setShowCommandPalette(false)
