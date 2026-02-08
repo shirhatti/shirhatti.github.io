@@ -59,8 +59,8 @@ export function parseFrontMatter(raw: string): ParsedPost {
  * - key: (arrays on next lines with - prefix)
  */
 function parseYamlSubset(lines: string[]): FrontMatter {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: Record<string, any> = {}
+  const strings: Record<string, string> = {}
+  const arrays: Record<string, string[]> = {}
   let currentKey: string | null = null
   let currentArray: string[] = []
 
@@ -80,7 +80,7 @@ function parseYamlSubset(lines: string[]): FrontMatter {
     if (colonIndex !== -1) {
       // Save previous array if any
       if (currentKey && currentArray.length > 0) {
-        result[currentKey] = currentArray
+        arrays[currentKey] = currentArray
         currentArray = []
       }
 
@@ -91,7 +91,7 @@ function parseYamlSubset(lines: string[]): FrontMatter {
 
       if (value) {
         // Inline value
-        result[key] = value
+        strings[key] = value
         currentKey = null
       }
       // else: value will come on next lines (array)
@@ -100,13 +100,13 @@ function parseYamlSubset(lines: string[]): FrontMatter {
 
   // Save last array if any
   if (currentKey && currentArray.length > 0) {
-    result[currentKey] = currentArray
+    arrays[currentKey] = currentArray
   }
 
   return {
-    title: result.title || '',
-    date: result.date || '',
-    tags: Array.isArray(result.tags) ? result.tags : [],
-    excerpt: result.excerpt || '',
+    title: strings.title || '',
+    date: strings.date || '',
+    tags: arrays.tags || [],
+    excerpt: strings.excerpt || '',
   }
 }

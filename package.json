@@ -7,8 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --ignore-path .gitignore --write .",
+    "format:check": "prettier --ignore-path .gitignore --check .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -46,5 +46,11 @@
     "vite": "^7.2.4",
     "vite-plugin-compression": "^0.5.1",
     "vitest": "^4.0.18"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "semi": false,
+    "tabWidth": 2,
+    "trailingComma": "all"
   }
 }
