@@ -1,5 +1,6 @@
 /* Markdown content styles - these target dangerouslySetInnerHTML output */
 /* and can't use StyleX (no className access on child elements) */
+/* Colors must be hardcoded since StyleX defineVars generates hashed names */
 
 .pager-content h1 {
   font-size: 2em;

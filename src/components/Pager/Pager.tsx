@@ -2,9 +2,11 @@ import { useEffect, useRef, useCallback, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import type { Post } from '../../data/types'
 import { renderMarkdown } from '../../utils/markdown'
-import './Pager.css'
+import { colors, fonts } from '../../styles/tokens.stylex'
 
 const MOBILE = '@media (max-width: 768px)'
+import { chromeBar, closeButton, focusRing } from '../../styles/shared'
+import './Pager.css'
 
 const styles = stylex.create({
   overlay: {
@@ -17,32 +19,25 @@ const styles = stylex.create({
       default: 50,
       [MOBILE]: 200,
     },
-    background: '#1e1e1e',
+    background: colors.bgSurface,
     display: 'flex',
     flexDirection: 'column',
-    color: '#d4d4d4',
+    color: colors.textPrimary,
   },
   header: {
     display: {
       default: 'flex',
       [MOBILE]: 'none',
     },
-    alignItems: 'center',
     gap: 12,
     padding: '6px 16px',
-    background: '#2d2d2d',
-    borderBottom: '1px solid #404040',
-    fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
-    fontSize: 12,
-    color: '#808080',
-    flexShrink: 0,
   },
   filename: {
-    color: '#e0e0e0',
+    color: colors.textBright,
     fontWeight: 600,
   },
   date: {
-    color: '#6a9955',
+    color: colors.accentGreenComment,
   },
   tags: {
     marginLeft: 'auto',
@@ -50,37 +45,11 @@ const styles = stylex.create({
     gap: 6,
   },
   tag: {
-    background: '#333',
+    background: colors.bgOverlay,
     padding: '1px 6px',
     borderRadius: 3,
-    color: '#569cd6',
+    color: colors.accentBlue,
     fontSize: 12,
-  },
-  closeBtn: {
-    display: 'none',
-    background: 'none',
-    border: 'none',
-    color: {
-      default: '#808080',
-      ':hover': '#e0e0e0',
-    },
-    fontSize: 18,
-    cursor: 'pointer',
-    padding: '8px 12px',
-    lineHeight: 1,
-    marginLeft: 8,
-    minWidth: 44,
-    minHeight: 44,
-  },
-  closeBtnFocusVisible: {
-    outline: {
-      default: 'revert',
-      ':focus-visible': '2px solid #4ec9b0',
-    },
-    outlineOffset: {
-      default: 0,
-      ':focus-visible': -2,
-    },
   },
   scroll: {
     flex: 1,
@@ -90,8 +59,7 @@ const styles = stylex.create({
     overscrollBehavior: 'contain',
   },
   content: {
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif",
+    fontFamily: fonts.sansContent,
     fontSize: {
       default: 16,
       [MOBILE]: 15,
@@ -109,20 +77,12 @@ const styles = stylex.create({
     margin: '0 auto',
   },
   statusBar: {
-    display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
     padding: '4px 16px',
     paddingBottom: {
       default: 4,
       [MOBILE]: 'calc(4px + env(safe-area-inset-bottom, 0px))',
     },
-    background: '#2d2d2d',
-    borderTop: '1px solid #404040',
-    fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
-    fontSize: 12,
-    color: '#808080',
-    flexShrink: 0,
   },
   keys: {
     display: {
@@ -132,30 +92,20 @@ const styles = stylex.create({
     gap: 12,
   },
   kbd: {
-    background: '#404040',
+    background: colors.borderDefault,
     padding: '1px 5px',
     borderRadius: 3,
     fontSize: 11,
-    color: '#d4d4d4',
+    color: colors.textPrimary,
   },
-  mobileCloseBtn: {
+  closeBtnHidden: {
+    display: 'none',
+  },
+  closeBtnMobile: {
     display: {
       default: 'none',
       [MOBILE]: 'block',
     },
-    background: 'none',
-    border: 'none',
-    color: {
-      default: '#808080',
-      ':hover': '#e0e0e0',
-    },
-    fontSize: 18,
-    cursor: 'pointer',
-    padding: '8px 12px',
-    lineHeight: 1,
-    marginLeft: 8,
-    minWidth: 44,
-    minHeight: 44,
   },
 })
 
@@ -249,7 +199,7 @@ export function Pager({ post, onClose }: PagerProps) {
 
   return (
     <div {...stylex.props(styles.overlay)}>
-      <div {...stylex.props(styles.header)}>
+      <div {...stylex.props(chromeBar.base, chromeBar.top, styles.header)}>
         <span {...stylex.props(styles.filename)}>{post.slug}</span>
         <span {...stylex.props(styles.date)}>{post.date}</span>
         <div {...stylex.props(styles.tags)}>
@@ -260,7 +210,11 @@ export function Pager({ post, onClose }: PagerProps) {
           ))}
         </div>
         <button
-          {...stylex.props(styles.closeBtn, styles.closeBtnFocusVisible)}
+          {...stylex.props(
+            closeButton.base,
+            styles.closeBtnHidden,
+            focusRing.cyan,
+          )}
           onClick={onClose}
           aria-label="Close pager"
         >
@@ -277,7 +231,9 @@ export function Pager({ post, onClose }: PagerProps) {
         </div>
       </div>
 
-      <div {...stylex.props(styles.statusBar)}>
+      <div
+        {...stylex.props(chromeBar.base, chromeBar.bottom, styles.statusBar)}
+      >
         <span>
           {post.slug} — {scrollPercent}%
         </span>
@@ -295,7 +251,11 @@ export function Pager({ post, onClose }: PagerProps) {
           </span>
         </div>
         <button
-          {...stylex.props(styles.mobileCloseBtn)}
+          {...stylex.props(
+            closeButton.base,
+            styles.closeBtnMobile,
+            focusRing.cyan,
+          )}
           onClick={onClose}
           aria-label="Close pager"
         >

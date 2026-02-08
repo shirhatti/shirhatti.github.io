@@ -1,112 +1,107 @@
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { colors, fonts } from '../../styles/tokens.stylex'
 
-const TABLET = '@media (max-width: 768px)'
-const MOBILE = '@media (max-width: 600px)'
-const XSMALL = '@media (max-width: 400px)'
+const MOBILE = '@media (max-width: 768px)'
+const MOBILE_SM = '@media (max-width: 600px)'
+const XXSMALL = '@media (max-width: 400px)'
 
 const styles = stylex.create({
   window: {
     width: {
       default: '94vw',
-      [TABLET]: '98vw',
-      [MOBILE]: '100vw',
+      [MOBILE]: '98vw',
+      [MOBILE_SM]: '100vw',
     },
     maxWidth: 1200,
     height: {
       default: '88vh',
-      [TABLET]: '94vh',
-      [MOBILE]: '100vh',
+      [MOBILE]: '94vh',
+      [MOBILE_SM]: '100vh',
     },
     margin: {
       default: '4vh auto',
-      [TABLET]: '2vh auto',
-      [MOBILE]: 0,
+      [MOBILE]: '2vh auto',
+      [MOBILE_SM]: 0,
     },
     borderRadius: {
       default: 8,
-      [MOBILE]: 0,
+      [MOBILE_SM]: 0,
     },
     overflow: 'hidden',
     boxShadow: {
       default: '0 20px 60px rgba(0, 0, 0, 0.5)',
-      [MOBILE]: 'none',
+      [MOBILE_SM]: 'none',
     },
-    background: '#1e1e1e',
+    background: colors.bgSurface,
     display: 'flex',
     flexDirection: 'column',
   },
   titleBar: {
-    background: 'linear-gradient(to bottom, #3c3c3c, #2d2d2d)',
+    background: `linear-gradient(to bottom, ${colors.borderSubtle}, ${colors.bgElevated})`,
     padding: {
       default: '10px 14px',
-      [TABLET]: '8px 12px',
-      [MOBILE]: '6px 10px',
-      [XSMALL]: '4px 8px',
+      [MOBILE]: '8px 12px',
+      [MOBILE_SM]: '6px 10px',
+      [XXSMALL]: '4px 8px',
     },
     display: 'flex',
     alignItems: 'center',
-    borderBottom: '1px solid #1a1a1a',
+    borderBottom: `1px solid ${colors.bgBase}`,
     flexShrink: 0,
   },
   buttons: {
     display: {
       default: 'flex',
-      [XSMALL]: 'none',
+      [XXSMALL]: 'none',
     },
     gap: 8,
     width: {
       default: 52,
-      [MOBILE]: 40,
+      [MOBILE_SM]: 40,
     },
     visibility: {
       default: 'visible',
-      [MOBILE]: 'hidden',
+      [MOBILE_SM]: 'hidden',
     },
   },
   buttonsSpacer: {
     width: {
       default: 52,
-      [MOBILE]: 40,
+      [MOBILE_SM]: 40,
     },
     display: {
       default: 'block',
-      [XSMALL]: 'none',
+      [XXSMALL]: 'none',
     },
   },
-  button: {
+  dot: {
     width: {
       default: 12,
-      [TABLET]: 10,
+      [MOBILE]: 10,
     },
     height: {
       default: 12,
-      [TABLET]: 10,
+      [MOBILE]: 10,
     },
     borderRadius: '50%',
     display: 'inline-block',
   },
-  close: {
-    background: '#ff5f56',
-  },
-  minimize: {
-    background: '#ffbd2e',
-  },
-  maximize: {
-    background: '#27c93f',
-  },
+  close: { background: colors.trafficRed },
+  minimize: { background: colors.trafficYellow },
+  maximize: { background: colors.trafficGreen },
   title: {
-    color: '#999',
+    color: colors.textDim,
     fontSize: {
       default: 13,
-      [TABLET]: 12,
-      [XSMALL]: 11,
+      [MOBILE]: 12,
+      [XXSMALL]: 11,
     },
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamily: fonts.sans,
     flex: 1,
     textAlign: {
       default: 'center',
-      [XSMALL]: 'left',
+      [XXSMALL]: 'left',
     },
     userSelect: 'none',
   },
@@ -117,9 +112,9 @@ export function TerminalWindow({ children }: { children: ReactNode }) {
     <div {...stylex.props(styles.window)}>
       <div {...stylex.props(styles.titleBar)}>
         <div {...stylex.props(styles.buttons)}>
-          <span {...stylex.props(styles.button, styles.close)} />
-          <span {...stylex.props(styles.button, styles.minimize)} />
-          <span {...stylex.props(styles.button, styles.maximize)} />
+          <span {...stylex.props(styles.dot, styles.close)} />
+          <span {...stylex.props(styles.dot, styles.minimize)} />
+          <span {...stylex.props(styles.dot, styles.maximize)} />
         </div>
         <span {...stylex.props(styles.title)}>visitor@shirhatti.com: ~</span>
         <div {...stylex.props(styles.buttonsSpacer)} />

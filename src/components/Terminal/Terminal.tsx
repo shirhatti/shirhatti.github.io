@@ -18,11 +18,13 @@ import {
   matchOverlayRoute,
   type OverlayState,
 } from '../../overlays'
-import './Terminal.css'
+import { colors, fonts } from '../../styles/tokens.stylex'
 
 const MOBILE = '@media (max-width: 768px)'
 const XSMALL = '@media (max-width: 480px)'
 const DESKTOP = '@media (min-width: 769px)'
+import { focusRing, paletteItem } from '../../styles/shared'
+import './Terminal.css'
 
 const slideUp = stylex.keyframes({
   from: { opacity: 0, transform: 'translateY(20px)' },
@@ -58,9 +60,9 @@ const styles = stylex.create({
       [DESKTOP]: 'none',
     },
     alignItems: 'center',
-    background: '#2d2d2d',
+    background: colors.bgElevated,
     borderTop: 'none',
-    boxShadow: '0 -1px 0 #3c3c3c',
+    boxShadow: `0 -1px 0 ${colors.borderSubtle}`,
     zIndex: 100,
     paddingBottom: 'env(safe-area-inset-bottom, 0px)',
   },
@@ -71,31 +73,31 @@ const styles = stylex.create({
       default: '12px 16px',
       [XSMALL]: '10px 12px',
     },
-    fontFamily: "'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace",
+    fontFamily: fonts.mono,
     fontSize: 16,
     background: {
       default: 'transparent',
       ':focus': 'rgba(255, 255, 255, 0.03)',
     },
-    color: '#d4d4d4',
+    color: colors.textPrimary,
     border: 'none',
     outline: {
       default: 'revert',
       ':focus': 'none',
     },
     '::placeholder': {
-      color: '#999',
+      color: colors.textDim,
     },
   },
-  commandPaletteToggle: {
+  fab: {
     position: 'fixed',
     bottom: 16,
     right: 16,
     width: 56,
     height: 56,
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #0dbc79, #23d18b)',
-    color: '#1e1e1e',
+    background: `linear-gradient(135deg, ${colors.accentGreen}, ${colors.accentGreenLight})`,
+    color: colors.bgSurface,
     border: 'none',
     fontSize: 24,
     fontWeight: 'bold',
@@ -117,16 +119,6 @@ const styles = stylex.create({
       ':active': 'scale(0.95)',
     },
   },
-  commandPaletteToggleFocusVisible: {
-    outline: {
-      default: 'revert',
-      ':focus-visible': '2px solid #0dbc79',
-    },
-    outlineOffset: {
-      default: 0,
-      ':focus-visible': 2,
-    },
-  },
   inlineToggle: {
     position: 'static',
     width: 44,
@@ -135,12 +127,11 @@ const styles = stylex.create({
     borderRadius: 0,
     background: {
       default: 'transparent',
-      ':active': '#3c3c3c',
+      ':active': colors.borderSubtle,
     },
-    color: '#0dbc79',
+    color: colors.accentGreen,
     boxShadow: 'none',
     fontSize: 20,
-    borderLeft: '1px solid #3c3c3c',
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
@@ -157,8 +148,8 @@ const styles = stylex.create({
     left: 8,
     right: 8,
     maxHeight: '60vh',
-    background: '#2d2d2d',
-    border: '1px solid #3c3c3c',
+    background: colors.bgElevated,
+    border: `1px solid ${colors.borderSubtle}`,
     borderRadius: 8,
     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
     overflowY: 'auto',
@@ -169,44 +160,18 @@ const styles = stylex.create({
   },
   section: {
     padding: '12px 0',
-    borderBottom: '1px solid #3c3c3c',
+    borderBottom: `1px solid ${colors.borderSubtle}`,
     ':last-child': {
       borderBottom: 'none',
     },
   },
   sectionTitle: {
     padding: '0 16px 8px',
-    color: '#999',
+    color: colors.textDim,
     fontSize: 12,
     fontWeight: 600,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  paletteButton: {
-    width: '100%',
-    padding: '12px 16px',
-    background: {
-      default: 'transparent',
-      ':active': '#3c3c3c',
-    },
-    color: '#d4d4d4',
-    border: 'none',
-    textAlign: 'left',
-    fontFamily: "'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace",
-    fontSize: 14,
-    cursor: 'pointer',
-    transition: 'background-color 0.15s',
-    WebkitTapHighlightColor: 'transparent',
-  },
-  paletteButtonFocusVisible: {
-    outline: {
-      default: 'revert',
-      ':focus-visible': '2px solid #0dbc79',
-    },
-    outlineOffset: {
-      default: 0,
-      ':focus-visible': -2,
-    },
   },
 })
 
@@ -759,10 +724,7 @@ export function Terminal() {
 
         {!overlay && (
           <button
-            {...stylex.props(
-              styles.commandPaletteToggle,
-              styles.commandPaletteToggleFocusVisible,
-            )}
+            {...stylex.props(styles.fab, focusRing.green)}
             onClick={() => setShowCommandPalette(!showCommandPalette)}
             aria-label="Toggle command palette"
           >
@@ -774,54 +736,23 @@ export function Terminal() {
           <div {...stylex.props(styles.commandPalette)}>
             <div {...stylex.props(styles.section)}>
               <div {...stylex.props(styles.sectionTitle)}>Quick Commands</div>
-              <button
-                {...stylex.props(
-                  styles.paletteButton,
-                  styles.paletteButtonFocusVisible,
-                )}
-                onClick={() => {
-                  runCommand('help')
-                  setShowCommandPalette(false)
-                }}
-              >
-                help - Show available commands
-              </button>
-              <button
-                {...stylex.props(
-                  styles.paletteButton,
-                  styles.paletteButtonFocusVisible,
-                )}
-                onClick={() => {
-                  runCommand('ls')
-                  setShowCommandPalette(false)
-                }}
-              >
-                ls - List all posts
-              </button>
-              <button
-                {...stylex.props(
-                  styles.paletteButton,
-                  styles.paletteButtonFocusVisible,
-                )}
-                onClick={() => {
-                  runCommand('clear')
-                  setShowCommandPalette(false)
-                }}
-              >
-                clear - Clear terminal
-              </button>
-              <button
-                {...stylex.props(
-                  styles.paletteButton,
-                  styles.paletteButtonFocusVisible,
-                )}
-                onClick={() => {
-                  runCommand('whoami')
-                  setShowCommandPalette(false)
-                }}
-              >
-                whoami - About me
-              </button>
+              {[
+                { cmd: 'help', label: 'help - Show available commands' },
+                { cmd: 'ls', label: 'ls - List all posts' },
+                { cmd: 'clear', label: 'clear - Clear terminal' },
+                { cmd: 'whoami', label: 'whoami - About me' },
+              ].map(({ cmd, label }) => (
+                <button
+                  key={cmd}
+                  {...stylex.props(paletteItem.base, focusRing.greenInset)}
+                  onClick={() => {
+                    runCommand(cmd)
+                    setShowCommandPalette(false)
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
             {posts.length > 0 && (
@@ -830,10 +761,7 @@ export function Terminal() {
                 {posts.slice(0, 5).map((post) => (
                   <button
                     key={post.slug}
-                    {...stylex.props(
-                      styles.paletteButton,
-                      styles.paletteButtonFocusVisible,
-                    )}
+                    {...stylex.props(paletteItem.base, focusRing.greenInset)}
                     onClick={() => {
                       runCommand(`less ${post.slug}`)
                       setShowCommandPalette(false)
