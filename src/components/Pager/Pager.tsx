@@ -1,113 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import * as stylex from '@stylexjs/stylex'
 import type { Post } from '../../data/types'
 import { renderMarkdown } from '../../utils/markdown'
-import { colors, fonts } from '../../styles/tokens.stylex'
-
-const MOBILE = '@media (max-width: 768px)'
-import { chromeBar, closeButton, focusRing } from '../../styles/shared'
 import './Pager.css'
-
-const styles = stylex.create({
-  overlay: {
-    position: {
-      default: 'absolute',
-      [MOBILE]: 'fixed',
-    },
-    inset: 0,
-    zIndex: {
-      default: 50,
-      [MOBILE]: 200,
-    },
-    background: colors.bgSurface,
-    display: 'flex',
-    flexDirection: 'column',
-    color: colors.textPrimary,
-  },
-  header: {
-    display: {
-      default: 'flex',
-      [MOBILE]: 'none',
-    },
-    gap: 12,
-    padding: '6px 16px',
-  },
-  filename: {
-    color: colors.textBright,
-    fontWeight: 600,
-  },
-  date: {
-    color: colors.accentGreenComment,
-  },
-  tags: {
-    marginLeft: 'auto',
-    display: 'flex',
-    gap: 6,
-  },
-  tag: {
-    background: colors.bgOverlay,
-    padding: '1px 6px',
-    borderRadius: 3,
-    color: colors.accentBlue,
-    fontSize: 12,
-  },
-  scroll: {
-    flex: 1,
-    overflowY: 'auto',
-    WebkitOverflowScrolling: 'touch',
-    touchAction: 'pan-y',
-    overscrollBehavior: 'contain',
-  },
-  content: {
-    fontFamily: fonts.sansContent,
-    fontSize: {
-      default: 16,
-      [MOBILE]: 15,
-    },
-    lineHeight: 1.7,
-    padding: {
-      default: '24px 32px',
-      [MOBILE]: 16,
-    },
-    paddingBottom: {
-      default: null,
-      [MOBILE]: 32,
-    },
-    maxWidth: 780,
-    margin: '0 auto',
-  },
-  statusBar: {
-    justifyContent: 'space-between',
-    padding: '4px 16px',
-    paddingBottom: {
-      default: 4,
-      [MOBILE]: 'calc(4px + env(safe-area-inset-bottom, 0px))',
-    },
-  },
-  keys: {
-    display: {
-      default: 'flex',
-      [MOBILE]: 'none',
-    },
-    gap: 12,
-  },
-  kbd: {
-    background: colors.borderDefault,
-    padding: '1px 5px',
-    borderRadius: 3,
-    fontSize: 11,
-    color: colors.textPrimary,
-  },
-  closeBtnHidden: {
-    display: 'none',
-  },
-  closeBtnMobile: {
-    display: {
-      default: 'none',
-      [MOBILE]: 'block',
-    },
-  },
-})
 
 interface PagerProps {
   post: Post
@@ -198,68 +92,54 @@ export function Pager({ post, onClose }: PagerProps) {
   }, [onClose])
 
   return (
-    <div {...stylex.props(styles.overlay)}>
-      <div {...stylex.props(chromeBar.base, chromeBar.top, styles.header)}>
-        <span {...stylex.props(styles.filename)}>{post.slug}</span>
-        <span {...stylex.props(styles.date)}>{post.date}</span>
-        <div {...stylex.props(styles.tags)}>
+    <div className="pager-overlay">
+      <div className="pager-header">
+        <span className="pager-filename">{post.slug}</span>
+        <span className="pager-date">{post.date}</span>
+        <div className="pager-tags">
           {post.tags.map((tag) => (
-            <span key={tag} {...stylex.props(styles.tag)}>
+            <span key={tag} className="pager-tag">
               {tag}
             </span>
           ))}
         </div>
         <button
-          {...stylex.props(
-            closeButton.base,
-            styles.closeBtnHidden,
-            focusRing.cyan,
-          )}
+          className="pager-close-btn"
           onClick={onClose}
           aria-label="Close pager"
         >
-          {'\u2715'}
+          ✕
         </button>
       </div>
 
-      <div {...stylex.props(styles.scroll)} ref={scrollRef}>
-        <div
-          className={`pager-content ${stylex.props(styles.content).className ?? ''}`}
-        >
+      <div className="pager-scroll" ref={scrollRef}>
+        <div className="pager-content">
           <h1>{post.title}</h1>
           <div dangerouslySetInnerHTML={{ __html: html }} />
         </div>
       </div>
 
-      <div
-        {...stylex.props(chromeBar.base, chromeBar.bottom, styles.statusBar)}
-      >
+      <div className="pager-status-bar">
         <span>
           {post.slug} — {scrollPercent}%
         </span>
-        <div {...stylex.props(styles.keys)}>
+        <div className="pager-keys">
           <span>
-            <kbd {...stylex.props(styles.kbd)}>j</kbd>/
-            <kbd {...stylex.props(styles.kbd)}>k</kbd> scroll
+            <kbd>j</kbd>/<kbd>k</kbd> scroll
           </span>
           <span>
-            <kbd {...stylex.props(styles.kbd)}>Space</kbd>/
-            <kbd {...stylex.props(styles.kbd)}>b</kbd> page
+            <kbd>Space</kbd>/<kbd>b</kbd> page
           </span>
           <span>
-            <kbd {...stylex.props(styles.kbd)}>q</kbd> close
+            <kbd>q</kbd> close
           </span>
         </div>
         <button
-          {...stylex.props(
-            closeButton.base,
-            styles.closeBtnMobile,
-            focusRing.cyan,
-          )}
+          className="pager-close-btn"
           onClick={onClose}
           aria-label="Close pager"
         >
-          {'\u2715'}
+          ✕
         </button>
       </div>
     </div>

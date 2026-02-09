@@ -9,7 +9,7 @@ fi
 
 # Reject large files (>1MB)
 MAX_SIZE=$((1 * 1024 * 1024))
-git diff --cached --diff-filter=ACM --name-only | while IFS= read -r file; do
+git diff --cached --diff-filter=ACM -z --name-only | while IFS= read -r -d '' file; do
   size=$(wc -c < "$file" 2>/dev/null || echo 0)
   if [ "$size" -gt "$MAX_SIZE" ]; then
     echo "Error: $file is $(( size / 1024 ))KB (max 1MB)"
