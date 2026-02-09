@@ -1,11 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import stylex from '@stylexjs/unplugin'
 import viteCompression from 'vite-plugin-compression'
 
 export default defineConfig({
   plugins: [
-    stylex.vite({}),
     react(),
     // Gzip compression
     viteCompression({

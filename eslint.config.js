@@ -19,31 +19,5 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: ['*.css'],
-              message:
-                'Use StyleX instead of CSS imports. If CSS is required (e.g. third-party DOM or dangerouslySetInnerHTML), add an exemption here.',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    // Exempt files that legitimately need CSS imports
-    files: [
-      'src/main.tsx', // global resets (App.css)
-      'src/components/Terminal/Terminal.tsx', // xterm.js overrides
-      'src/components/Terminal/useTerminal.ts', // xterm.js vendor CSS
-      'src/components/Pager/Pager.tsx', // dangerouslySetInnerHTML markdown
-    ],
-    rules: {
-      'no-restricted-imports': 'off',
-    },
   },
 ])

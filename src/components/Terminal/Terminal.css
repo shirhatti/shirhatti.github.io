@@ -1,4 +1,9 @@
-/* xterm.js overrides - these target third-party DOM and can't use StyleX */
+.terminal-content {
+  flex: 1;
+  padding: 8px;
+  overflow: hidden;
+}
+
 .terminal-content .xterm {
   height: 100%;
 }
@@ -7,19 +12,206 @@
   overflow-y: auto !important;
 }
 
+/* Mobile bottom bar - sticky at bottom */
+.mobile-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  background: #2d2d2d;
+  border-top: none;
+  box-shadow: 0 -1px 0 #3c3c3c;
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Mobile input */
+.mobile-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace;
+  font-size: 16px; /* Prevents zoom on iOS */
+  background: transparent;
+  color: #d4d4d4;
+  border: none;
+}
+
+.mobile-input::placeholder {
+  color: #999;
+}
+
+.mobile-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Command palette toggle button */
+.command-palette-toggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0dbc79, #23d18b);
+  color: #1e1e1e;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(13, 188, 121, 0.4);
+  cursor: pointer;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+/* Inside the mobile bottom bar, override to inline */
+.mobile-bottom-bar .command-palette-toggle {
+  position: static;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 0;
+  background: transparent;
+  color: #0dbc79;
+  box-shadow: none;
+  font-size: 20px;
+  border-left: 1px solid #3c3c3c;
+}
+
+.mobile-bottom-bar .command-palette-toggle:active {
+  background: #3c3c3c;
+}
+
+.command-palette-toggle:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(13, 188, 121, 0.3);
+}
+
+.command-palette-toggle:focus-visible {
+  outline: 2px solid #0dbc79;
+  outline-offset: 2px;
+}
+
+.command-palette button:focus-visible {
+  outline: 2px solid #0dbc79;
+  outline-offset: -2px;
+}
+
+/* Command palette */
+.command-palette {
+  position: fixed;
+  bottom: 120px;
+  left: 8px;
+  right: 8px;
+  max-height: 60vh;
+  background: #2d2d2d;
+  border: 1px solid #3c3c3c;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+  z-index: 99;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.command-palette-section {
+  padding: 12px 0;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.command-palette-section:last-child {
+  border-bottom: none;
+}
+
+.command-palette-title {
+  padding: 0 16px 8px;
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.command-palette button {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  color: #d4d4d4;
+  border: none;
+  text-align: left;
+  font-family: 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.command-palette button:active {
+  background: #3c3c3c;
+}
+
+/* Desktop - hide mobile bottom bar */
+@media (min-width: 769px) {
+  .mobile-bottom-bar {
+    display: none !important;
+  }
+}
+
+/* Mobile - hide desktop-only floating button */
 @media (max-width: 768px) {
+  .command-palette-toggle.desktop-only {
+    display: none !important;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .terminal-content {
+    padding: 6px;
+    margin-bottom: 50px; /* Space for sticky bottom bar */
+  }
+
   .terminal-content .xterm {
     font-size: 14px !important;
   }
 
+  /* Make terminal scrollable with touch */
   .terminal-content .xterm-viewport {
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+
+  .command-palette {
+    bottom: 50px;
+  }
 }
 
+/* Extra small screens */
 @media (max-width: 480px) {
   .terminal-content .xterm {
     font-size: 13px !important;
+  }
+
+  .mobile-input {
+    font-size: 16px; /* Maintain 16px to prevent iOS zoom */
+    padding: 10px 12px;
   }
 }
