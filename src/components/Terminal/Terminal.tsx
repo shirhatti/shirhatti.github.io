@@ -12,6 +12,7 @@ import {
   identity,
 } from '../../utils/ansi'
 import { findClosestMatch } from '../../utils/fuzzy'
+import { normalizeArg, preprocessArgs } from '../../shell'
 import {
   getOverlayComponent,
   matchOverlayRoute,
@@ -158,12 +159,13 @@ export function Terminal() {
       // Check if first word is cat or less
       const cmdName = parts[0].toLowerCase()
       if (cmdName === 'cat' || cmdName === 'less') {
-        // Complete post slug
+        // Complete post slug — normalise prefix so ./wel<TAB> matches "welcome"
         const lastPart = parts[parts.length - 1]
         prefix = input.endsWith(' ') ? '' : lastPart
+        const normalizedPrefix = normalizeArg(prefix)
         matches = posts
           .map((p) => p.slug)
-          .filter((slug) => slug.startsWith(prefix))
+          .filter((slug) => slug.startsWith(normalizedPrefix))
           .sort()
       }
     }
@@ -257,7 +259,7 @@ export function Terminal() {
 
       const parts = trimmed.split(/\s+/)
       const cmdName = parts[0].toLowerCase()
-      let args = parts.slice(1)
+      let args = preprocessArgs(parts.slice(1))
 
       // Special handling for 'll' alias - auto-add -l flag
       const cmd = findCommand(cmdName)
