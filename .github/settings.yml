@@ -2,10 +2,11 @@
 #
 # SECURITY NOTE: This app escalates anyone with push access to effectively have
 # admin privileges, since pushing changes to this file on the default branch
-# auto-applies them. The CODEOWNERS file and branch protection rules below
-# mitigate this by requiring code-owner review for changes to .github/.
+# auto-applies them. The CODEOWNERS file auto-requests the owner as reviewer,
+# and a PR warning workflow posts a caution comment on config-changing PRs.
 #
-# Changes to this file require code-owner approval before merging.
+# If collaborators are added later, re-enable required_pull_request_reviews
+# in the branch protection section below to enforce code-owner sign-off.
 
 repository:
   # Omit 'name' intentionally — setting it risks accidental renames
@@ -34,15 +35,17 @@ repository:
 branches:
   - name: main
     protection:
-      # Require PRs with at least 1 approval; enforce code-owner reviews
-      # so changes to .github/ need explicit sign-off (see CODEOWNERS).
-      required_pull_request_reviews:
-        required_approving_review_count: 1
-        dismiss_stale_reviews: true
-        require_code_owner_reviews: true
-        dismissal_restrictions:
-          users: []
-          teams: []
+      # PR reviews disabled — solo repo, GitHub won't let you approve
+      # your own PRs. Re-enable this block if you add collaborators:
+      #
+      # required_pull_request_reviews:
+      #   required_approving_review_count: 1
+      #   dismiss_stale_reviews: true
+      #   require_code_owner_reviews: true
+      #   dismissal_restrictions:
+      #     users: []
+      #     teams: []
+      required_pull_request_reviews: null
 
       # Require the deploy workflow build job to pass before merging
       required_status_checks:
