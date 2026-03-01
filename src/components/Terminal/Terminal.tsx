@@ -15,6 +15,7 @@ import * as vfs from '../../vfs'
 import {
   getOverlayComponent,
   matchOverlayRoute,
+  entryOverlayPath,
   type OverlayState,
 } from '../../overlays'
 import './Terminal.css'
@@ -33,7 +34,7 @@ function getWelcomeBanner(): string {
       .slice(0, 3)
       .map(
         (entry, idx) =>
-          `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${entry.slug}`, `${ansi.brightCyan}${entry.slug}${ansi.reset}`)} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`,
+          `    ${ansi.dim}${idx + 1}. ${formatLink(`#${entryOverlayPath(entry)}`, `${ansi.brightCyan}${entry.slug}${ansi.reset}`)} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`,
       ),
     '',
     `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,

@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import type { OverlayEntry, OverlayProps } from './index'
-import { findBySlug, readFile, HOME } from '../vfs'
+import { findBySlug, readBySlug } from '../vfs'
 
 export const pager: OverlayEntry = {
   route: '/post/:slug',
@@ -11,14 +11,13 @@ export const pager: OverlayEntry = {
       default: m.Pager as unknown as ComponentType<OverlayProps>,
     })),
   resolve: (params) => {
-    const entry = findBySlug(params.slug)
-    if (!entry) return null
+    if (!findBySlug(params.slug)) return null
     return {
       loadProps: async () => {
-        const post = await readFile(HOME + entry.path)
+        const post = await readBySlug(params.slug)
         return post ? { post } : null
       },
-      displayArg: entry.slug,
+      displayArg: params.slug,
     }
   },
 }
