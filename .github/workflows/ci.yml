@@ -105,12 +105,16 @@ jobs:
           path: node_modules
           key: deps-${{ hashFiles('bun.lock') }}
 
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(bunx playwright --version)" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         id: cache-playwright
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ hashFiles('bun.lock') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
 
       - name: Install Playwright browsers
         if: steps.cache-playwright.outputs.cache-hit != 'true'
