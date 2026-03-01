@@ -27,6 +27,24 @@ const overlays: Record<string, OverlayEntry> = {
 
 export const overlayRoutes = Object.values(overlays).map((o) => o.route)
 
+// File extension → overlay name mapping
+const fileAssociations: Record<string, string> = {
+  '.md': 'pager',
+}
+
+/** Return an overlay path for a file, or null if no association exists. */
+export function fileOverlayPath(
+  filename: string,
+  params: Record<string, string>,
+): string | null {
+  const dot = filename.lastIndexOf('.')
+  if (dot === -1) return null
+  const ext = filename.slice(dot)
+  const name = fileAssociations[ext]
+  if (!name) return null
+  return overlayPath(name, params)
+}
+
 export function overlayPath(
   name: string,
   params: Record<string, string>,
