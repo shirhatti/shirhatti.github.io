@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import viteCompression from 'vite-plugin-compression'
+import vfsManifest from './vite-plugin-vfs-manifest'
 
 export default defineConfig({
   plugins: [
     react(),
+    vfsManifest({ pattern: 'posts/**/*.md' }),
     // Gzip compression
     viteCompression({
       algorithm: 'gzip',

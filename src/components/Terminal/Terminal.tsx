@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useTerminal } from './useTerminal'
 import { commands, findCommand } from '../../commands'
 import type { CommandContext } from '../../commands'
-import { posts } from '../../data/posts'
 import {
   formatPrompt,
   formatError,
@@ -12,6 +11,7 @@ import {
   identity,
 } from '../../utils/ansi'
 import { findClosestMatch } from '../../utils/fuzzy'
+import * as vfs from '../../vfs'
 import {
   getOverlayComponent,
   matchOverlayRoute,
@@ -20,6 +20,7 @@ import {
 import './Terminal.css'
 
 function getWelcomeBanner(): string {
+  const entries = vfs.allEntries()
   return [
     '',
     ...identity.headerBox,
@@ -28,11 +29,11 @@ function getWelcomeBanner(): string {
     '',
     `  ${ansi.brightWhite}${ansi.bold}Recent Posts:${ansi.reset}`,
     '',
-    ...posts
+    ...entries
       .slice(0, 3)
       .map(
-        (post, idx) =>
-          `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${post.slug}`, `${ansi.brightCyan}${post.slug}${ansi.reset}`)} ${ansi.dim}(${post.date}) - ${post.title}${ansi.reset}`,
+        (entry, idx) =>
+          `    ${ansi.dim}${idx + 1}. ${formatLink(`#/post/${entry.slug}`, `${ansi.brightCyan}${entry.slug}${ansi.reset}`)} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`,
       ),
     '',
     `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
@@ -57,6 +58,7 @@ export function Terminal() {
   const historyRef = useRef<string[]>([])
   const historyIndex = useRef(-1)
   const navigateRef = useRef(navigate)
+  const cwdRef = useRef(vfs.HOME)
   const tabCompletionState = useRef<{
     matches: string[]
     currentIndex: number
@@ -125,7 +127,7 @@ export function Terminal() {
   const writePrompt = useCallback(() => {
     const term = getTerminal()
     if (term) {
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
     }
   }, [getTerminal])
 
@@ -155,21 +157,42 @@ export function Terminal() {
         .filter((name) => name.startsWith(prefix))
         .sort()
     } else if (parts.length >= 1) {
-      // Check if first word is cat or less
       const cmdName = parts[0].toLowerCase()
-      if (cmdName === 'cat' || cmdName === 'less') {
-        // Complete post slug
-        const lastPart = parts[parts.length - 1]
-        prefix = input.endsWith(' ') ? '' : lastPart
-        matches = posts
-          .map((p) => p.slug)
-          .filter((slug) => slug.startsWith(prefix))
+      const lastPart = parts[parts.length - 1]
+      prefix = input.endsWith(' ') ? '' : lastPart
+
+      // Commands that take file/directory path arguments
+      if (['cat', 'less', 'cd', 'ls', 'tree'].includes(cmdName)) {
+        // Resolve the partial path to find completions
+        const cwd = cwdRef.current
+        let dirPath: string
+        let filePrefix: string
+
+        if (prefix.includes('/')) {
+          // Has directory component — complete within that directory
+          const lastSlash = prefix.lastIndexOf('/')
+          const dirPart = prefix.slice(0, lastSlash + 1)
+          filePrefix = prefix.slice(lastSlash + 1)
+          dirPath = vfs.resolve(cwd, dirPart)
+        } else {
+          // No directory component — complete in cwd
+          dirPath = cwd
+          filePrefix = prefix
+        }
+
+        const entries = vfs.readdir(dirPath)
+        const dirPrefix = prefix.includes('/')
+          ? prefix.slice(0, prefix.lastIndexOf('/') + 1)
+          : ''
+
+        matches = entries
+          .filter((e) => e.name.startsWith(filePrefix))
+          .map((e) => dirPrefix + e.name + (e.type === 'dir' ? '/' : ''))
           .sort()
       }
     }
 
     if (matches.length === 0) {
-      // No matches, reset state
       tabCompletionState.current = null
       return
     }
@@ -182,7 +205,7 @@ export function Terminal() {
 
       // Clear current line and rewrite
       term.write('\x1b[2K\r')
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.write(newInput)
       inputBuffer.current = newInput
       tabCompletionState.current = null
@@ -203,15 +226,16 @@ export function Terminal() {
       for (let i = 0; i < matches.length; i += columns) {
         const row = matches.slice(i, i + columns)
         const formattedRow = row
-          .map((m) =>
-            `${ansi.brightCyan}${m}${ansi.reset}`.padEnd(columnWidth + 10),
-          ) // +10 for ANSI codes
+          .map((m) => {
+            const color = m.endsWith('/') ? ansi.brightBlue : ansi.brightCyan
+            return `${color}${m}${ansi.reset}`.padEnd(columnWidth + 10)
+          })
           .join('')
         term.writeln(formattedRow)
       }
 
       // Rewrite prompt and input
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.write(input)
 
       // Initialize cycling state
@@ -231,7 +255,7 @@ export function Terminal() {
 
       // Clear current line and rewrite
       term.write('\x1b[2K\r')
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.write(newInput)
       inputBuffer.current = newInput
 
@@ -268,7 +292,10 @@ export function Terminal() {
       const ctx: CommandContext = {
         terminal: term,
         navigate: navigateRef.current,
-        posts,
+        cwd: cwdRef.current,
+        setCwd: (path: string) => {
+          cwdRef.current = path
+        },
         history: historyRef.current,
         setInputInterceptor: (handler) => {
           inputInterceptorRef.current = handler
@@ -327,7 +354,7 @@ export function Terminal() {
 
       // Clear current input
       term.write('\x1b[2K\r')
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.write(cmd)
       inputBuffer.current = cmd
 
@@ -388,7 +415,7 @@ export function Terminal() {
 
       // Update the terminal display
       term.write('\x1b[2K\r')
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.write(value)
       inputBuffer.current = value
     },
@@ -400,7 +427,7 @@ export function Terminal() {
     const term = getTerminal()
     if (!term) return
 
-    // Set up OSC 8 link handler to run `cat <slug>` on click or open external links
+    // Set up OSC 8 link handler to run `less <slug>` on click or open external links
     term.options.linkHandler = {
       activate(_event: MouseEvent, uri: string) {
         const match = uri.match(/#\/post\/(.+)$/)
@@ -445,7 +472,7 @@ export function Terminal() {
           }
           const entry = historyRef.current[historyIndex.current]
           term.write('\x1b[2K\r')
-          term.write(formatPrompt())
+          term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
           term.write(entry)
           inputBuffer.current = entry
           tabCompletionState.current = null
@@ -457,13 +484,13 @@ export function Terminal() {
             historyIndex.current++
             const entry = historyRef.current[historyIndex.current]
             term.write('\x1b[2K\r')
-            term.write(formatPrompt())
+            term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
             term.write(entry)
             inputBuffer.current = entry
           } else {
             historyIndex.current = -1
             term.write('\x1b[2K\r')
-            term.write(formatPrompt())
+            term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
             inputBuffer.current = ''
           }
           tabCompletionState.current = null
@@ -490,11 +517,17 @@ export function Terminal() {
     // If we loaded directly to an overlay URL, open it
     const overlayMatch = matchOverlayRoute(location.pathname)
     if (overlayMatch) {
-      term.write(formatPrompt())
+      term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
-      openOverlayRef
-        .current(overlayMatch.name, overlayMatch.props)
-        .then(() => writePrompt())
+      overlayMatch.loadProps().then((props) => {
+        if (props) {
+          openOverlayRef
+            .current(overlayMatch.name, props)
+            .then(() => writePrompt())
+        } else {
+          writePrompt()
+        }
+      })
     } else {
       writePrompt()
     }
@@ -521,6 +554,8 @@ export function Terminal() {
       mobileInputRef.current.focus()
     }
   }, [isMobile])
+
+  const entries = vfs.allEntries()
 
   return (
     <>
@@ -568,7 +603,7 @@ export function Terminal() {
               onClick={() => setShowCommandPalette(!showCommandPalette)}
               aria-label="Toggle command palette"
             >
-              {showCommandPalette ? '✕' : '⌘'}
+              {showCommandPalette ? '\u2715' : '\u2318'}
             </button>
           </div>
         )}
@@ -579,7 +614,7 @@ export function Terminal() {
             onClick={() => setShowCommandPalette(!showCommandPalette)}
             aria-label="Toggle command palette"
           >
-            {showCommandPalette ? '✕' : '⌘'}
+            {showCommandPalette ? '\u2715' : '\u2318'}
           </button>
         )}
 
@@ -601,7 +636,7 @@ export function Terminal() {
                   setShowCommandPalette(false)
                 }}
               >
-                ls - List all posts
+                ls - List directory
               </button>
               <button
                 onClick={() => {
@@ -621,18 +656,18 @@ export function Terminal() {
               </button>
             </div>
 
-            {posts.length > 0 && (
+            {entries.length > 0 && (
               <div className="command-palette-section">
                 <div className="command-palette-title">Recent Posts</div>
-                {posts.slice(0, 5).map((post) => (
+                {entries.slice(0, 5).map((entry) => (
                   <button
-                    key={post.slug}
+                    key={entry.slug}
                     onClick={() => {
-                      runCommand(`less ${post.slug}`)
+                      runCommand(`less ${entry.slug}`)
                       setShowCommandPalette(false)
                     }}
                   >
-                    {post.title}
+                    {entry.meta.title}
                   </button>
                 ))}
               </div>

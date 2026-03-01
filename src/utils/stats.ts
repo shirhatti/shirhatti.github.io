@@ -1,52 +1,48 @@
-import type { Post } from '../data/types'
+import type { VfsManifestEntry } from '../../vite-plugin-vfs-manifest'
 
 export interface BlogStats {
   totalPosts: number
   totalWords: number
   averageWordsPerPost: number
   tags: Map<string, number>
-  oldestPost: Post | null
-  newestPost: Post | null
+  oldestDate: string | null
+  newestDate: string | null
 }
 
-export function calculateStats(posts: Post[]): BlogStats {
-  if (posts.length === 0) {
+export function calculateStats(entries: VfsManifestEntry[]): BlogStats {
+  if (entries.length === 0) {
     return {
       totalPosts: 0,
       totalWords: 0,
       averageWordsPerPost: 0,
       tags: new Map(),
-      oldestPost: null,
-      newestPost: null,
+      oldestDate: null,
+      newestDate: null,
     }
   }
 
   let totalWords = 0
   const tagCounts = new Map<string, number>()
 
-  for (const post of posts) {
-    // Count words in content
-    const words = post.content.split(/\s+/).filter((w) => w.length > 0).length
-    totalWords += words
+  for (const entry of entries) {
+    totalWords += entry.meta.wordCount
 
-    // Count tags
-    for (const tag of post.tags) {
+    for (const tag of entry.meta.tags) {
       tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)
     }
   }
 
-  // Sort posts by date to find oldest and newest
-  const sortedPosts = [...posts].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.meta.date).getTime() - new Date(b.meta.date).getTime(),
   )
 
   return {
-    totalPosts: posts.length,
+    totalPosts: entries.length,
     totalWords,
-    averageWordsPerPost: Math.round(totalWords / posts.length),
+    averageWordsPerPost: Math.round(totalWords / entries.length),
     tags: tagCounts,
-    oldestPost: sortedPosts[0],
-    newestPost: sortedPosts[sortedPosts.length - 1],
+    oldestDate: sorted[0].meta.date,
+    newestDate: sorted[sorted.length - 1].meta.date,
   }
 }
 
