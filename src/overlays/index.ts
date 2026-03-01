@@ -16,7 +16,7 @@ export interface OverlayEntry {
   command: string
   loader: () => Promise<{ default: ComponentType<OverlayProps> }>
   resolve: (params: Record<string, string>) => {
-    props: Record<string, unknown>
+    loadProps: () => Promise<Record<string, unknown> | null>
     displayArg: string
   } | null
 }
@@ -40,7 +40,7 @@ export interface OverlayMatch {
   name: string
   command: string
   displayArg: string
-  props: Record<string, unknown>
+  loadProps: () => Promise<Record<string, unknown> | null>
 }
 
 export function matchOverlayRoute(pathname: string): OverlayMatch | null {
@@ -53,7 +53,7 @@ export function matchOverlayRoute(pathname: string): OverlayMatch | null {
       name,
       command: entry.command,
       displayArg: resolved.displayArg,
-      props: resolved.props,
+      loadProps: resolved.loadProps,
     }
   }
   return null

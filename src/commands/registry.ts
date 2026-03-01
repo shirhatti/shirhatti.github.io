@@ -6,11 +6,13 @@ import {
   formatLink,
   identity,
 } from '../utils/ansi'
-import { formatPostAsBat, formatLsOutput } from '../utils/cat'
+import { formatPostAsBat } from '../utils/cat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
 import { overlayPath } from '../overlays'
+import * as vfs from '../vfs'
+import type { FsNode } from '../vfs'
 import type { Command } from './types'
 
 /**
@@ -26,6 +28,26 @@ export function findCommand(nameOrAlias: string): Command | undefined {
   return cmd
 }
 
+/**
+ * Resolve a path argument, trying .md extension fallback for files,
+ * then slug lookup as a last resort (so `cat building-a-blog` works anywhere).
+ */
+function resolveFileArg(cwd: string, arg: string): string | null {
+  const resolved = vfs.resolve(cwd, arg)
+  const node = vfs.stat(resolved)
+  if (node) return resolved
+
+  // Try .md extension fallback
+  const withMd = resolved + '.md'
+  if (vfs.stat(withMd)) return withMd
+
+  // Try slug lookup (convenience: `cat building-a-blog` from any directory)
+  const entry = vfs.findBySlug(arg)
+  if (entry) return vfs.HOME + entry.path
+
+  return null
+}
+
 export const commands: Command[] = [
   {
     name: 'help',
@@ -36,6 +58,7 @@ export const commands: Command[] = [
 
       const groups: { label: string; cmds: string[] }[] = [
         { label: 'Reading', cmds: ['cat', 'less', 'ls'] },
+        { label: 'Navigation', cmds: ['cd', 'pwd', 'tree'] },
         { label: 'Info', cmds: ['stats', 'whoami'] },
         { label: 'Terminal', cmds: ['clear', 'help', 'man'] },
       ]
@@ -74,7 +97,6 @@ export const commands: Command[] = [
       const { terminal } = ctx
 
       if (args.length === 0) {
-        // List all available man pages
         terminal.writeln('')
         terminal.writeln(`${ansi.bold}${ansi.underline}NAME${ansi.reset}`)
         terminal.writeln(
@@ -97,7 +119,18 @@ export const commands: Command[] = [
           `${ansi.bold}${ansi.underline}AVAILABLE MANUAL PAGES${ansi.reset}`,
         )
 
-        const manPages = ['cat', 'clear', 'help', 'less', 'ls', 'man', 'stats']
+        const manPages = [
+          'cat',
+          'cd',
+          'clear',
+          'help',
+          'less',
+          'ls',
+          'man',
+          'pwd',
+          'stats',
+          'tree',
+        ]
         manPages.forEach((page) => {
           terminal.writeln(`       ${ansi.bold}${page}${ansi.reset}`)
         })
@@ -123,7 +156,6 @@ export const commands: Command[] = [
         return
       }
 
-      // Display the man page
       terminal.writeln('')
       terminal.writeln(`${ansi.bold}${ansi.underline}NAME${ansi.reset}`)
       terminal.writeln(`       ${manPage.name}`)
@@ -163,67 +195,145 @@ export const commands: Command[] = [
   },
   {
     name: 'ls',
-    description:
-      'List all blog posts (use -l for details, -a for all metadata)',
+    description: 'List directory contents',
     aliases: ['ll'],
     handler: (args, ctx) => {
-      const { terminal, posts } = ctx
+      const { terminal, cwd } = ctx
       const longFormat = args.includes('-l') || args.includes('--long')
       const showAll = args.includes('-a') || args.includes('--all')
 
-      // Parse --sort flag
-      let sortBy: 'date' | 'title' = 'date'
-      const sortArg = args.find((arg) => arg.startsWith('--sort='))
-      if (sortArg) {
-        const sortValue = sortArg.split('=')[1]
-        if (sortValue === 'title' || sortValue === 'date') {
-          sortBy = sortValue
+      // Find the target path (first non-flag argument, or cwd)
+      const target = args.find((a) => !a.startsWith('-')) ?? cwd
+      const resolved = target === cwd ? cwd : vfs.resolve(cwd, target)
+      const node = vfs.stat(resolved)
+
+      if (!node) {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(
+            `ls: cannot access '${target}': No such file or directory`,
+          ),
+        )
+        terminal.writeln('')
+        return
+      }
+
+      if (node.type !== 'dir') {
+        // Single file — just print its name
+        terminal.writeln('')
+        terminal.writeln(`  ${ansi.brightGreen}${node.name}${ansi.reset}`)
+        terminal.writeln('')
+        return
+      }
+
+      const entries = vfs.readdir(resolved)
+      if (entries.length === 0) {
+        terminal.writeln('')
+        terminal.writeln(formatDim('  (empty directory)'))
+        terminal.writeln('')
+        return
+      }
+
+      // Sort: directories first, then files, alphabetically within each
+      const sorted = [...entries].sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+
+      terminal.writeln('')
+
+      if (longFormat || showAll) {
+        for (const entry of sorted) {
+          if (entry.type === 'dir') {
+            terminal.writeln(`  ${ansi.brightBlue}${entry.name}/${ansi.reset}`)
+          } else if (entry.entry) {
+            const { meta } = entry.entry
+            const date = `${ansi.dim}${meta.date}${ansi.reset}`
+            const name = `${ansi.brightGreen}${entry.name}${ansi.reset}`
+            const title = `${ansi.brightWhite}${meta.title}${ansi.reset}`
+            terminal.writeln(`  ${date}  ${name}  ${title}`)
+            if (showAll) {
+              if (meta.tags.length > 0) {
+                const tags = meta.tags
+                  .map((t) => `${ansi.cyan}${t}${ansi.reset}`)
+                  .join(`${ansi.dim}, ${ansi.reset}`)
+                terminal.writeln(
+                  `${' '.repeat(14)}${ansi.dim}[${ansi.reset}${tags}${ansi.dim}]${ansi.reset}`,
+                )
+              }
+              const readTime = Math.ceil(meta.wordCount / 200)
+              terminal.writeln(
+                `${' '.repeat(14)}${ansi.dim}${meta.wordCount} words \u2022 ~${readTime} min read${ansi.reset}`,
+              )
+            }
+          }
+        }
+      } else {
+        for (const entry of sorted) {
+          if (entry.type === 'dir') {
+            terminal.writeln(`  ${ansi.brightBlue}${entry.name}/${ansi.reset}`)
+          } else {
+            terminal.writeln(`  ${ansi.brightGreen}${entry.name}${ansi.reset}`)
+          }
         }
       }
 
-      terminal.write(formatLsOutput(posts, { longFormat, showAll, sortBy }))
+      terminal.writeln('')
     },
   },
   {
     name: 'cat',
     description: 'Read a blog post with syntax highlighting',
     handler: async (args, ctx) => {
-      const { terminal, posts } = ctx
+      const { terminal, cwd } = ctx
       if (args.length === 0) {
         terminal.writeln('')
-        terminal.writeln(formatError('usage: cat <post-name>'))
-        terminal.writeln(formatDim('  Try: cat welcome'))
+        terminal.writeln(formatError('usage: cat <file>'))
+        terminal.writeln(
+          formatDim('  Try: cat posts/2016/04/11-building-a-blog.md'),
+        )
         terminal.writeln('')
         return
       }
-      const post = posts.find((p) => p.slug === args[0])
-      if (!post) {
-        terminal.writeln('')
-        terminal.writeln(formatError(`cat: '${args[0]}': No such post found`))
 
-        // Try to find a similar post using fuzzy matching
-        const postSlugs = posts.map((p) => p.slug)
-        const suggestion = findClosestMatch(args[0], postSlugs, 3)
+      const resolved = resolveFileArg(cwd, args[0])
+      if (!resolved) {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(`cat: '${args[0]}': No such file or directory`),
+        )
+
+        // Suggest similar files in the current directory
+        const dirEntries = vfs.readdir(cwd)
+        const filenames = dirEntries
+          .filter((e) => e.type === 'file')
+          .map((e) => e.name)
+        const suggestion = findClosestMatch(args[0], filenames, 3)
 
         if (suggestion) {
           terminal.writeln('')
           terminal.writeln(
             `${ansi.dim}Did you mean ${ansi.reset}${ansi.brightGreen}${suggestion}${ansi.reset}${ansi.dim}?${ansi.reset}`,
           )
-          terminal.writeln(
-            `${ansi.dim}Try: ${ansi.reset}${ansi.green}cat ${suggestion}${ansi.reset}`,
-          )
         } else {
           terminal.writeln('')
           terminal.writeln(
-            `${ansi.dim}Use ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim} to see all available posts${ansi.reset}`,
+            `${ansi.dim}Use ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim} to see files in the current directory${ansi.reset}`,
           )
         }
 
         terminal.writeln('')
         return
       }
-      // Process images if the post has any
+
+      const post = await vfs.readFile(resolved)
+      if (!post) {
+        terminal.writeln('')
+        terminal.writeln(formatError(`cat: '${args[0]}': Not a readable file`))
+        terminal.writeln('')
+        return
+      }
+
       if (Object.keys(post.images).length > 0) {
         const processedContent = await processImagesForTerminal(
           post.content,
@@ -245,42 +355,160 @@ export const commands: Command[] = [
     name: 'less',
     description: 'Read a blog post in the pager',
     handler: async (args, ctx) => {
-      const { terminal, posts, navigate, openOverlay } = ctx
+      const { terminal, cwd, navigate, openOverlay } = ctx
       if (args.length === 0) {
         terminal.writeln('')
-        terminal.writeln(formatError('usage: less <post-name>'))
-        terminal.writeln(formatDim('  Try: less welcome'))
+        terminal.writeln(formatError('usage: less <file>'))
+        terminal.writeln(
+          formatDim('  Try: less posts/2016/04/11-building-a-blog.md'),
+        )
         terminal.writeln('')
         return
       }
-      const post = posts.find((p) => p.slug === args[0])
-      if (!post) {
-        terminal.writeln('')
-        terminal.writeln(formatError(`less: '${args[0]}': No such post found`))
 
-        const postSlugs = posts.map((p) => p.slug)
-        const suggestion = findClosestMatch(args[0], postSlugs, 3)
+      const resolved = resolveFileArg(cwd, args[0])
+      if (!resolved) {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(`less: '${args[0]}': No such file or directory`),
+        )
+
+        const dirEntries = vfs.readdir(cwd)
+        const filenames = dirEntries
+          .filter((e) => e.type === 'file')
+          .map((e) => e.name)
+        const suggestion = findClosestMatch(args[0], filenames, 3)
 
         if (suggestion) {
           terminal.writeln('')
           terminal.writeln(
             `${ansi.dim}Did you mean ${ansi.reset}${ansi.brightGreen}${suggestion}${ansi.reset}${ansi.dim}?${ansi.reset}`,
           )
-          terminal.writeln(
-            `${ansi.dim}Try: ${ansi.reset}${ansi.green}less ${suggestion}${ansi.reset}`,
-          )
         } else {
           terminal.writeln('')
           terminal.writeln(
-            `${ansi.dim}Use ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim} to see all available posts${ansi.reset}`,
+            `${ansi.dim}Use ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim} to see files in the current directory${ansi.reset}`,
           )
         }
 
         terminal.writeln('')
         return
       }
+
+      const post = await vfs.readFile(resolved)
+      if (!post) {
+        terminal.writeln('')
+        terminal.writeln(formatError(`less: '${args[0]}': Not a readable file`))
+        terminal.writeln('')
+        return
+      }
+
       navigate(overlayPath('pager', { slug: post.slug }))
       if (openOverlay) return openOverlay('pager', { post })
+    },
+  },
+  {
+    name: 'cd',
+    description: 'Change directory',
+    handler: (args, ctx) => {
+      const { terminal, cwd, setCwd } = ctx
+
+      // cd with no args goes home
+      const target = args[0] ?? '~'
+      const resolved = vfs.resolve(cwd, target)
+      const node = vfs.stat(resolved)
+
+      if (!node) {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(`cd: '${target}': No such file or directory`),
+        )
+        terminal.writeln('')
+        return
+      }
+
+      if (node.type !== 'dir') {
+        terminal.writeln('')
+        terminal.writeln(formatError(`cd: '${target}': Not a directory`))
+        terminal.writeln('')
+        return
+      }
+
+      setCwd(resolved)
+    },
+  },
+  {
+    name: 'pwd',
+    description: 'Print working directory',
+    handler: (_args, ctx) => {
+      const { terminal, cwd } = ctx
+      terminal.writeln('')
+      terminal.writeln(`  ${cwd}`)
+      terminal.writeln('')
+    },
+  },
+  {
+    name: 'tree',
+    description: 'Display directory tree',
+    handler: (args, ctx) => {
+      const { terminal, cwd } = ctx
+
+      const target = args.find((a) => !a.startsWith('-')) ?? cwd
+      const resolved = target === cwd ? cwd : vfs.resolve(cwd, target)
+      const node = vfs.stat(resolved)
+
+      if (!node || node.type !== 'dir') {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(`tree: '${target}': No such file or directory`),
+        )
+        terminal.writeln('')
+        return
+      }
+
+      let dirCount = 0
+      let fileCount = 0
+
+      function walk(n: FsNode, prefix: string, isLast: boolean) {
+        const connector = isLast ? '\u2514\u2500\u2500 ' : '\u251c\u2500\u2500 '
+        const name =
+          n.type === 'dir'
+            ? `${ansi.brightBlue}${n.name}/${ansi.reset}`
+            : `${ansi.brightGreen}${n.name}${ansi.reset}`
+        terminal.writeln(`${prefix}${connector}${name}`)
+
+        if (n.type === 'dir') {
+          dirCount++
+          const children = Array.from(n.children.values()).sort((a, b) => {
+            if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
+            return a.name.localeCompare(b.name)
+          })
+          const childPrefix = prefix + (isLast ? '    ' : '\u2502   ')
+          children.forEach((child, i) => {
+            walk(child, childPrefix, i === children.length - 1)
+          })
+        } else {
+          fileCount++
+        }
+      }
+
+      terminal.writeln('')
+      const rootName = `${ansi.brightBlue}${vfs.displayPath(resolved)}${ansi.reset}`
+      terminal.writeln(`  ${rootName}`)
+
+      const children = Array.from(node.children.values()).sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+      children.forEach((child, i) => {
+        walk(child, '  ', i === children.length - 1)
+      })
+
+      terminal.writeln('')
+      terminal.writeln(
+        `  ${ansi.dim}${dirCount} directories, ${fileCount} files${ansi.reset}`,
+      )
+      terminal.writeln('')
     },
   },
   {
@@ -322,27 +550,12 @@ export const commands: Command[] = [
     },
   },
   {
-    name: '..',
-    description: 'Go back home',
-    handler: (_args, ctx) => {
-      const { terminal, navigate } = ctx
-      terminal.clear()
-      terminal.writeln('')
-      terminal.writeln(formatHeader('Welcome Back!'))
-      terminal.writeln('')
-      terminal.writeln(
-        `${ansi.dim}Navigated to home. Type ${ansi.reset}${ansi.green}help${ansi.reset}${ansi.dim} to see available commands.${ansi.reset}`,
-      )
-      terminal.writeln('')
-      navigate('/')
-    },
-  },
-  {
     name: 'stats',
     description: 'Show blog statistics (htop-style)',
     handler: (_args, ctx) => {
-      const { terminal, posts } = ctx
-      const stats = calculateStats(posts)
+      const { terminal } = ctx
+      const entries = vfs.allEntries()
+      const stats = calculateStats(entries)
       const topTags = getTopTags(stats.tags, 10)
 
       // Header bar (htop-style with inverted colors)
@@ -353,34 +566,26 @@ export const commands: Command[] = [
       terminal.writeln('')
 
       // CPU-style meters (repurposed for blog metrics)
-      const postUsage = Math.min(100, (stats.totalPosts / 50) * 100) // Max 50 posts = 100%
-      const wordUsage = Math.min(100, (stats.totalWords / 50000) * 100) // Max 50k words = 100%
-      const tagUsage = Math.min(100, (stats.tags.size / 20) * 100) // Max 20 tags = 100%
+      const postUsage = Math.min(100, (stats.totalPosts / 50) * 100)
+      const wordUsage = Math.min(100, (stats.totalWords / 50000) * 100)
+      const tagUsage = Math.min(100, (stats.tags.size / 20) * 100)
 
-      // Posts meter
-      const postBar = renderMeter('Posts', stats.totalPosts, postUsage)
-      terminal.writeln(postBar)
-
-      // Words meter
-      const wordBar = renderMeter('Words', stats.totalWords, wordUsage)
-      terminal.writeln(wordBar)
-
-      // Tags meter
-      const tagBar = renderMeter('Tags', stats.tags.size, tagUsage)
-      terminal.writeln(tagBar)
+      terminal.writeln(renderMeter('Posts', stats.totalPosts, postUsage))
+      terminal.writeln(renderMeter('Words', stats.totalWords, wordUsage))
+      terminal.writeln(renderMeter('Tags', stats.tags.size, tagUsage))
 
       terminal.writeln('')
 
-      // Memory-style stats (repurposed for averages)
+      // Memory-style stats
       const avgWords = stats.averageWordsPerPost
       const avgWordsBar = renderBar(Math.min(100, (avgWords / 500) * 100), 30)
       terminal.writeln(
         `  ${ansi.brightCyan}Avg words/post:${ansi.reset} ${avgWordsBar} ${ansi.bold}${avgWords}${ansi.reset}`,
       )
 
-      if (stats.oldestPost && stats.newestPost) {
+      if (stats.oldestDate) {
         const daysSinceFirst = Math.floor(
-          (new Date().getTime() - new Date(stats.oldestPost.date).getTime()) /
+          (new Date().getTime() - new Date(stats.oldestDate).getTime()) /
             (1000 * 60 * 60 * 24),
         )
         const postsPerMonth = stats.totalPosts / (daysSinceFirst / 30)
@@ -397,7 +602,6 @@ export const commands: Command[] = [
         `  ${ansi.bold}\x1b[7m PID   TAG              %CPU  POSTS  COMMAND ${' '.repeat(20)}\x1b[27m${ansi.reset}`,
       )
 
-      // Top tags as "processes"
       topTags.slice(0, 8).forEach(([tag, count], idx) => {
         const pid = (1000 + idx).toString().padStart(5)
         const cpu = ((count / stats.totalPosts) * 100).toFixed(1).padStart(5)
@@ -405,7 +609,6 @@ export const commands: Command[] = [
         const postCount = count.toString().padStart(6)
         const command = `blog/${tag}`
 
-        // Color code by usage
         const cpuNum = parseFloat(cpu)
         let cpuColor: string = ansi.brightGreen
         if (cpuNum > 30) cpuColor = ansi.brightYellow
@@ -418,15 +621,14 @@ export const commands: Command[] = [
 
       terminal.writeln('')
 
-      // Footer (htop-style help hints)
       terminal.writeln(
-        `${ansi.dim}─────────────────────────────────────────────────────────────────────────────${ansi.reset}`,
+        `${ansi.dim}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500${ansi.reset}`,
       )
       terminal.writeln(
         `${ansi.brightGreen}F1${ansi.reset}${ansi.dim}Help ${ansi.reset}${ansi.brightGreen}F2${ansi.reset}${ansi.dim}Setup ${ansi.reset}${ansi.brightGreen}F3${ansi.reset}${ansi.dim}Search ${ansi.reset}${ansi.brightGreen}F9${ansi.reset}${ansi.dim}List ${ansi.reset}${ansi.brightGreen}F10${ansi.reset}${ansi.dim}Quit${ansi.reset}`,
       )
       terminal.writeln(
-        `${ansi.dim}Hint: Try ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim}, ${ansi.reset}${ansi.green}cat <slug>${ansi.reset}${ansi.dim}, or ${ansi.reset}${ansi.green}help${ansi.reset}`,
+        `${ansi.dim}Hint: Try ${ansi.reset}${ansi.green}ls${ansi.reset}${ansi.dim}, ${ansi.reset}${ansi.green}cat <file>${ansi.reset}${ansi.dim}, or ${ansi.reset}${ansi.green}help${ansi.reset}`,
       )
       terminal.writeln('')
     },
@@ -450,7 +652,7 @@ export const commands: Command[] = [
         'Programs must be written for people to read, and only incidentally for machines to execute.',
         'The function of good software is to make the complex appear to be simple.',
         'Truth can only be found in one place: the code.',
-        "It's not a bug – it's an undocumented feature.",
+        "It's not a bug \u2013 it's an undocumented feature.",
         'Code never lies, comments sometimes do.',
         'Premature optimization is the root of all evil.',
         'Good code is its own best documentation.',
@@ -461,19 +663,18 @@ export const commands: Command[] = [
 
       terminal.writeln('')
       terminal.writeln(
-        `${ansi.bold}${ansi.brightCyan}╔═══════════════════════════════════════════════════════════╗${ansi.reset}`,
+        `${ansi.bold}${ansi.brightCyan}\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557${ansi.reset}`,
       )
       terminal.writeln(
-        `${ansi.bold}${ansi.brightCyan}║${ansi.reset}  ${ansi.brightYellow}✨ Your Fortune${ansi.reset}                                        ${ansi.bold}${ansi.brightCyan}║${ansi.reset}`,
+        `${ansi.bold}${ansi.brightCyan}\u2551${ansi.reset}  ${ansi.brightYellow}\u2728 Your Fortune${ansi.reset}                                        ${ansi.bold}${ansi.brightCyan}\u2551${ansi.reset}`,
       )
       terminal.writeln(
-        `${ansi.bold}${ansi.brightCyan}╚═══════════════════════════════════════════════════════════╝${ansi.reset}`,
+        `${ansi.bold}${ansi.brightCyan}\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d${ansi.reset}`,
       )
       terminal.writeln('')
 
-      // Word wrap the fortune
       const words = fortune.split(' ')
-      const lines = []
+      const lines: string[] = []
       let currentLine = ''
       const maxWidth = 55
 
@@ -508,67 +709,61 @@ interface ManPage {
   seeAlso?: string[]
 }
 
-// Helper function to get man page content
 function getManPage(command: string): ManPage | null {
   const pages: Record<string, ManPage> = {
     ls: {
-      name: 'ls - list blog posts',
-      synopsis: `${ansi.bold}ls${ansi.reset} [${ansi.underline}OPTION${ansi.reset}]...`,
+      name: 'ls - list directory contents',
+      synopsis: `${ansi.bold}ls${ansi.reset} [${ansi.underline}OPTION${ansi.reset}]... [${ansi.underline}PATH${ansi.reset}]`,
       description: [
-        'List all blog posts in the terminal blog.',
+        'List the contents of a directory in the virtual filesystem.',
         '',
-        'By default, displays a compact list of post titles sorted by date (newest first).',
-        'Use options to customize the output format and sorting order.',
+        'By default, lists the current working directory.',
+        'Directories are shown in blue, files in green.',
       ],
       options: [
         {
           flag: '-l, --long',
-          description:
-            'Use a long listing format with metadata (date, word count, reading time)',
+          description: 'Use a long listing format with metadata (date, title)',
         },
         {
           flag: '-a, --all',
-          description: 'Show all metadata including tags and full descriptions',
-        },
-        {
-          flag: '--sort=FIELD',
-          description: 'Sort by FIELD: "date" (default) or "title"',
+          description:
+            'Show all metadata including tags, word count, and reading time',
         },
       ],
       examples: [
-        'ls               List all posts (compact format)',
+        'ls               List current directory',
         'ls -l            List with metadata',
-        'ls -a            List with all metadata including tags',
-        'ls --sort=title  Sort posts alphabetically by title',
+        'ls posts/        List posts directory',
+        'ls -la ~/posts/  List posts with all metadata',
         'll               Alias for ls -l',
       ],
-      seeAlso: ['cat(1)'],
+      seeAlso: ['cat(1)', 'cd(1)', 'tree(1)'],
     },
     cat: {
       name: 'cat - display blog post content',
-      synopsis: `${ansi.bold}cat${ansi.reset} ${ansi.underline}POST-NAME${ansi.reset}`,
+      synopsis: `${ansi.bold}cat${ansi.reset} ${ansi.underline}FILE${ansi.reset}`,
       description: [
         'Read and display a blog post with syntax highlighting.',
         '',
-        'The output uses bat-style formatting with line numbers, git-style diffs,',
-        'and syntax highlighting for code blocks. Post content is rendered with',
-        'enhanced readability using terminal colors and formatting.',
+        'Paths are resolved relative to the current working directory.',
+        'The .md extension is optional.',
       ],
       examples: [
-        'cat welcome              Display the "welcome" post',
-        'cat my-first-post        Display post by slug name',
+        'cat 11-building-a-blog.md    Display post by filename',
+        'cat building-a-blog          Extension is optional',
+        'cat posts/2016/04/11-building-a-blog.md   Full path',
       ],
-      seeAlso: ['ls(1)', 'less(1)'],
+      seeAlso: ['ls(1)', 'less(1)', 'cd(1)'],
     },
     less: {
       name: 'less - read a blog post in the pager',
-      synopsis: `${ansi.bold}less${ansi.reset} ${ansi.underline}POST-NAME${ansi.reset}`,
+      synopsis: `${ansi.bold}less${ansi.reset} ${ansi.underline}FILE${ansi.reset}`,
       description: [
         'Open a blog post in the HTML pager with proportional fonts.',
         '',
-        'The pager provides a reading experience with proper heading sizes,',
-        'bold/italic formatting, and native scrolling. Supports vim-style',
-        'keyboard navigation and touch scrolling on mobile.',
+        'Paths are resolved relative to the current working directory.',
+        'The .md extension is optional.',
       ],
       options: [
         { flag: 'j / Down', description: 'Scroll down one line' },
@@ -582,10 +777,52 @@ function getManPage(command: string): ManPage | null {
         { flag: 'q / Esc', description: 'Close pager' },
       ],
       examples: [
-        'less welcome             Open "welcome" in the pager',
-        'less my-first-post       Open post by slug name',
+        'less 11-building-a-blog.md   Open post in pager',
+        'less building-a-blog         Extension is optional',
       ],
       seeAlso: ['cat(1)', 'ls(1)'],
+    },
+    cd: {
+      name: 'cd - change directory',
+      synopsis: `${ansi.bold}cd${ansi.reset} [${ansi.underline}PATH${ansi.reset}]`,
+      description: [
+        'Change the current working directory.',
+        '',
+        'With no arguments, changes to the home directory (~).',
+        'Supports absolute paths, relative paths, ~, and ..',
+      ],
+      examples: [
+        'cd               Change to home directory',
+        'cd posts/        Change to posts directory',
+        'cd ..            Go up one level',
+        'cd ~/posts/2016  Absolute path from home',
+      ],
+      seeAlso: ['pwd(1)', 'ls(1)'],
+    },
+    pwd: {
+      name: 'pwd - print working directory',
+      synopsis: `${ansi.bold}pwd${ansi.reset}`,
+      description: [
+        'Print the full pathname of the current working directory.',
+      ],
+      examples: ['pwd              Print current directory'],
+      seeAlso: ['cd(1)', 'ls(1)'],
+    },
+    tree: {
+      name: 'tree - display directory tree',
+      synopsis: `${ansi.bold}tree${ansi.reset} [${ansi.underline}PATH${ansi.reset}]`,
+      description: [
+        'Display a tree view of the directory structure.',
+        '',
+        'Shows directories and files in a hierarchical format.',
+        'With no arguments, displays the tree from the current directory.',
+      ],
+      examples: [
+        'tree             Show tree from current directory',
+        'tree ~           Show tree from home directory',
+        'tree posts/      Show tree of posts directory',
+      ],
+      seeAlso: ['ls(1)', 'cd(1)'],
     },
     stats: {
       name: 'stats - display blog statistics',
@@ -594,8 +831,7 @@ function getManPage(command: string): ManPage | null {
         'Display comprehensive blog statistics in an htop-style interface.',
         '',
         'Shows metrics including total posts, word count, tags, posting velocity,',
-        'and a breakdown of the most popular tags. The output uses a btop-inspired',
-        'design with colorful meters and progress bars.',
+        'and a breakdown of the most popular tags.',
       ],
       examples: ['stats                Show blog statistics dashboard'],
       seeAlso: ['ls(1)'],
@@ -605,9 +841,6 @@ function getManPage(command: string): ManPage | null {
       synopsis: `${ansi.bold}man${ansi.reset} [${ansi.underline}COMMAND${ansi.reset}]`,
       description: [
         'Display the manual page for a command.',
-        '',
-        'Manual pages provide detailed documentation for terminal blog commands,',
-        'including syntax, options, examples, and related commands.',
         '',
         'Without arguments, lists all available manual pages.',
       ],
@@ -621,12 +854,7 @@ function getManPage(command: string): ManPage | null {
     help: {
       name: 'help - show available commands',
       synopsis: `${ansi.bold}help${ansi.reset}`,
-      description: [
-        'Display a quick reference of all available commands.',
-        '',
-        'Shows a compact list of commands with brief descriptions and aliases.',
-        'For detailed documentation on a specific command, use man(1).',
-      ],
+      description: ['Display a quick reference of all available commands.'],
       examples: [
         'help                 Show all commands',
         'h                    Alias for help',
@@ -638,9 +866,7 @@ function getManPage(command: string): ManPage | null {
       synopsis: `${ansi.bold}clear${ansi.reset}`,
       description: [
         'Clear the terminal screen and scrollback buffer.',
-        '',
-        'This command removes all output from the screen, providing a clean slate.',
-        'Command history is preserved and can still be accessed with arrow keys.',
+        'Command history is preserved.',
       ],
       examples: [
         'clear                Clear the screen',
@@ -658,7 +884,6 @@ function renderMeter(label: string, value: number, percentage: number): string {
   const barLength = 40
   const filled = Math.floor((percentage / 100) * barLength)
 
-  // Create colored bar segments
   let bar = ''
   for (let i = 0; i < barLength; i++) {
     if (i < filled) {
@@ -686,9 +911,9 @@ function renderBar(percentage: number, length: number): string {
       if (percentage < 33) color = ansi.brightGreen
       else if (percentage < 66) color = ansi.brightYellow
       else color = ansi.brightRed
-      bar += `${color}█${ansi.reset}`
+      bar += `${color}\u2588${ansi.reset}`
     } else {
-      bar += `${ansi.dim}░${ansi.reset}`
+      bar += `${ansi.dim}\u2591${ansi.reset}`
     }
   }
 
