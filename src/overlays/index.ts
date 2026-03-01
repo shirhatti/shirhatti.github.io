@@ -14,6 +14,7 @@ export interface OverlayState {
 export interface OverlayEntry {
   route: string
   command: string
+  extensions?: string[]
   loader: () => Promise<{ default: ComponentType<OverlayProps> }>
   resolve: (params: Record<string, string>) => {
     loadProps: () => Promise<Record<string, unknown> | null>
@@ -26,6 +27,20 @@ const overlays: Record<string, OverlayEntry> = {
 }
 
 export const overlayRoutes = Object.values(overlays).map((o) => o.route)
+
+/** Return an overlay path for a file, or null if no overlay handles its extension. */
+export function fileOverlayPath(
+  filename: string,
+  params: Record<string, string>,
+): string | null {
+  const dot = filename.lastIndexOf('.')
+  if (dot === -1) return null
+  const ext = filename.slice(dot)
+  for (const [name, entry] of Object.entries(overlays)) {
+    if (entry.extensions?.includes(ext)) return overlayPath(name, params)
+  }
+  return null
+}
 
 export function overlayPath(
   name: string,

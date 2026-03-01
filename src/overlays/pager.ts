@@ -5,6 +5,7 @@ import { findBySlug, readFile, HOME } from '../vfs'
 export const pager: OverlayEntry = {
   route: '/post/:slug',
   command: 'less',
+  extensions: ['.md'],
   loader: () =>
     import('../components/Pager/Pager').then((m) => ({
       default: m.Pager as unknown as ComponentType<OverlayProps>,
