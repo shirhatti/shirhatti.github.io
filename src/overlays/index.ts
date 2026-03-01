@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from 'react'
+import type { VfsManifestEntry } from '../../vite-plugin-vfs-manifest'
 import { pager } from './pager'
 
 export interface OverlayProps {
@@ -28,16 +29,12 @@ const overlays: Record<string, OverlayEntry> = {
 
 export const overlayRoutes = Object.values(overlays).map((o) => o.route)
 
-/** Return an overlay path for a file, or null if no overlay handles its extension. */
-export function fileOverlayPath(
-  filename: string,
-  params: Record<string, string>,
-): string | null {
-  const dot = filename.lastIndexOf('.')
-  if (dot === -1) return null
-  const ext = filename.slice(dot)
-  for (const [name, entry] of Object.entries(overlays)) {
-    if (entry.extensions?.includes(ext)) return overlayPath(name, params)
+/** Return an overlay path for a manifest entry, or null if no overlay handles it. */
+export function entryOverlayPath(entry: VfsManifestEntry): string | null {
+  const ext = entry.path.slice(entry.path.lastIndexOf('.'))
+  for (const [name, o] of Object.entries(overlays)) {
+    if (o.extensions?.includes(ext))
+      return overlayPath(name, { slug: entry.slug })
   }
   return null
 }

@@ -10,7 +10,7 @@ import { formatPostAsBat } from '../utils/cat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
-import { overlayPath, fileOverlayPath } from '../overlays'
+import { overlayPath, entryOverlayPath } from '../overlays'
 import * as vfs from '../vfs'
 import type { FsNode } from '../vfs'
 import type { Command } from './types'
@@ -472,8 +472,7 @@ export const commands: Command[] = [
       function walk(n: FsNode, prefix: string, isLast: boolean) {
         const connector = isLast ? '\u2514\u2500\u2500 ' : '\u251c\u2500\u2500 '
         const displayName = `${ansi.brightGreen}${n.name}${ansi.reset}`
-        const overlayLink =
-          n.entry && fileOverlayPath(n.name, { slug: n.entry.slug })
+        const overlayLink = n.entry && entryOverlayPath(n.entry)
         const name =
           n.type === 'dir'
             ? `${ansi.brightBlue}${n.name}/${ansi.reset}`

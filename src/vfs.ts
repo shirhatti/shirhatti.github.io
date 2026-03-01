@@ -164,6 +164,13 @@ export function findBySlug(slug: string): VfsManifestEntry | undefined {
   return manifest.find((e) => e.slug === slug)
 }
 
+/** Load a post by slug. Combines findBySlug + readFile. */
+export async function readBySlug(slug: string): Promise<Post | null> {
+  const entry = findBySlug(slug)
+  if (!entry) return null
+  return readFile(HOME + entry.path)
+}
+
 /** All manifest entries sorted by date descending (for welcome banner, etc). */
 export function allEntries(): VfsManifestEntry[] {
   return [...manifest].sort(
