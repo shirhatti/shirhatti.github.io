@@ -1,0 +1,9 @@
+# Code owners for repository configuration files.
+# Changes to these paths require approval from a code owner before merging.
+# This is the primary safeguard against unauthorized settings changes via
+# the repository-settings app (https://github.com/repository-settings/app).
+
+# Repository settings & workflow configuration
+.github/settings.yml @shirhatti
+.github/CODEOWNERS @shirhatti
+.github/workflows/ @shirhatti
