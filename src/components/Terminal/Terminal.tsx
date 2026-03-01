@@ -633,34 +633,26 @@ export function Terminal() {
               </button>
               <button
                 onClick={() => {
-                  runCommand('ls')
-                  setShowCommandPalette(false)
-                }}
-              >
-                ls - List directory
-              </button>
-              <button
-                onClick={() => {
-                  runCommand('clear')
-                  setShowCommandPalette(false)
-                }}
-              >
-                clear - Clear terminal
-              </button>
-              <button
-                onClick={() => {
                   runCommand('whoami')
                   setShowCommandPalette(false)
                 }}
               >
                 whoami - About me
               </button>
+              <button
+                onClick={() => {
+                  runCommand('tree')
+                  setShowCommandPalette(false)
+                }}
+              >
+                tree - Display directory tree
+              </button>
             </div>
 
             {entries.length > 0 && (
               <div className="command-palette-section">
                 <div className="command-palette-title">Recent Posts</div>
-                {entries.slice(0, 5).map((entry) => (
+                {entries.slice(0, 3).map((entry) => (
                   <button
                     key={entry.slug}
                     onClick={() => {
