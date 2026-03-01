@@ -6,7 +6,10 @@ import vfsManifest from './vite-plugin-vfs-manifest'
 export default defineConfig({
   plugins: [
     react(),
-    vfsManifest({ pattern: 'posts/**/*.md' }),
+    vfsManifest({
+      pattern: 'posts/**/*.md',
+      sidecarPattern: 'posts/**/.*.meta.yaml',
+    }),
     // Gzip compression
     viteCompression({
       algorithm: 'gzip',

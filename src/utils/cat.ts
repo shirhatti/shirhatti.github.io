@@ -1,5 +1,5 @@
 import { ansi, formatLink } from './ansi'
-import type { Post } from '../data/types'
+import type { MarkdownContent } from '../data/types'
 
 /* eslint-disable no-control-regex */
 const RE_OSC8_LINK = /\x1b\]8;;([^\x07\x1b]*?)(?:\x07|\x1b\\)/g
@@ -31,7 +31,10 @@ interface BatOptions {
 /**
  * Format a post in bat-style with header and syntax highlighting
  */
-export function formatPostAsBat(post: Post, options: BatOptions = {}): string {
+export function formatPostAsBat(
+  post: MarkdownContent,
+  options: BatOptions = {},
+): string {
   const { showHeader = true, cols = 80 } = options
 
   const lines = post.content.split('\r\n')
@@ -423,7 +426,7 @@ function getTagColor(tag: string): string {
 /**
  * Get icon/symbol for post based on tags
  */
-function getPostIcon(post: Post): string {
+function getPostIcon(post: MarkdownContent): string {
   const tags = post.tags.map((t) => t.toLowerCase())
 
   if (tags.some((t) => t.includes('meta') || t.includes('intro'))) {
@@ -470,7 +473,10 @@ export interface LsOptions {
 /**
  * Format ls output in bat-style grid with enhanced features
  */
-export function formatLsOutput(posts: Post[], options: LsOptions = {}): string {
+export function formatLsOutput(
+  posts: MarkdownContent[],
+  options: LsOptions = {},
+): string {
   const { longFormat = false, showAll = false, sortBy = 'date' } = options
   const output: string[] = []
 
@@ -574,7 +580,7 @@ export function formatLsOutput(posts: Post[], options: LsOptions = {}): string {
  * Format grep search results with context
  */
 export interface GrepMatch {
-  post: Post
+  post: MarkdownContent
   lineNum: number
   line: string
   contextBefore: string[]
