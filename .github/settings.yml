@@ -78,3 +78,6 @@ labels:
   - name: dependencies
     color: '0366d6'
     description: Dependency updates
+  - name: preview
+    color: '1d76db'
+    description: Deploy a PR preview to GitHub Pages
