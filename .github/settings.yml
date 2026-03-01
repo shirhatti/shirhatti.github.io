@@ -1,0 +1,74 @@
+# Repository settings managed by https://github.com/repository-settings/app
+#
+# SECURITY NOTE: This app escalates anyone with push access to effectively have
+# admin privileges, since pushing changes to this file on the default branch
+# auto-applies them. The CODEOWNERS file and branch protection rules below
+# mitigate this by requiring code-owner review for changes to .github/.
+#
+# Changes to this file require code-owner approval before merging.
+
+repository:
+  # Omit 'name' intentionally — setting it risks accidental renames
+  description: Personal blog & portfolio
+  homepage: https://shirhatti.github.io
+  topics: blog, personal-site, react, typescript, terminal
+
+  private: false
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  has_downloads: true
+
+  default_branch: main
+
+  # Merge settings — allow all strategies, prefer squash for clean history
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+
+  # Security
+  enable_automated_security_fixes: true
+  enable_vulnerability_alerts: true
+
+branches:
+  - name: main
+    protection:
+      # Require PRs with at least 1 approval; enforce code-owner reviews
+      # so changes to .github/ need explicit sign-off (see CODEOWNERS).
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+        dismissal_restrictions:
+          users: []
+          teams: []
+
+      # Require the deploy workflow build job to pass before merging
+      required_status_checks:
+        strict: true
+        contexts:
+          - build
+
+      # Allow admins to bypass in emergencies (personal repo escape hatch)
+      enforce_admins: false
+
+      # No force pushes or branch deletion
+      restrictions: null
+
+labels:
+  - name: blog
+    color: '0075ca'
+    description: Blog content changes
+  - name: infrastructure
+    color: 'e4e669'
+    description: CI/CD, build, and repo configuration
+  - name: bug
+    color: 'd73a4a'
+    description: Something isn't working
+  - name: enhancement
+    color: 'a2eeef'
+    description: New feature or improvement
+  - name: dependencies
+    color: '0366d6'
+    description: Dependency updates
