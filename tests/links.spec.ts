@@ -10,13 +10,25 @@ async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   await textarea.press('Enter')
 }
 
+/** Read all text from the ghostty-web canvas terminal buffer. */
+async function getTerminalText(
+  page: import('@playwright/test').Page,
+): Promise<string> {
+  return page.evaluate(
+    () =>
+      (
+        window as unknown as { __getTerminalText?: () => string }
+      ).__getTerminalText?.() ?? '',
+  )
+}
+
 test.describe('Blog Post Links', () => {
   test('welcome banner displays recent posts', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('.terminal-content', { timeout: 5000 })
     await page.waitForTimeout(1000)
 
-    const text = await page.locator('.terminal-content').textContent()
+    const text = await getTerminalText(page)
     expect(text).toContain('Recent Posts')
     expect(text).toContain('building-a-blog')
   })

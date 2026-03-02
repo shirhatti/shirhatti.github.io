@@ -11,6 +11,18 @@ async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   await textarea.press('Enter')
 }
 
+/** Read all text from the ghostty-web canvas terminal buffer. */
+async function getTerminalText(
+  page: import('@playwright/test').Page,
+): Promise<string> {
+  return page.evaluate(
+    () =>
+      (
+        window as unknown as { __getTerminalText?: () => string }
+      ).__getTerminalText?.() ?? '',
+  )
+}
+
 test.describe('Pager (less command)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -54,7 +66,7 @@ test.describe('Pager (less command)', () => {
 
     // Wait for help output to render, then check terminal has help text
     await page.waitForTimeout(500)
-    const text = await page.locator('.terminal-content').textContent()
+    const text = await getTerminalText(page)
     expect(text).toContain('Available Commands')
   })
 
@@ -119,7 +131,7 @@ test.describe('Pager (less command)', () => {
     // Verify terminal accepts input after deeplink pager close
     await typeCommand(page, 'help')
     await page.waitForTimeout(500)
-    const text = await page.locator('.terminal-content').textContent()
+    const text = await getTerminalText(page)
     expect(text).toContain('Available Commands')
   })
 })

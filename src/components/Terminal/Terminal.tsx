@@ -463,6 +463,22 @@ export function Terminal() {
 
     term.write(getWelcomeBanner())
 
+    // Expose a text-extraction helper for e2e tests.
+    // ghostty-web renders to canvas so DOM textContent() is always "".
+    ;(
+      window as unknown as {
+        __getTerminalText: () => string
+      }
+    ).__getTerminalText = () => {
+      const buf = term.buffer.active
+      const lines: string[] = []
+      for (let y = 0; y < buf.length; y++) {
+        const line = buf.getLine(y)
+        if (line) lines.push(line.translateToString(true))
+      }
+      return lines.join('\n')
+    }
+
     const dataDisposable = term.onData((data) => {
       if (inputInterceptorRef.current) {
         inputInterceptorRef.current(data)
