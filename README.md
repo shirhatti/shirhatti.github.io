@@ -1,6 +1,6 @@
 # shirhatti.github.io
 
-Personal blog built with React, TypeScript, and xterm.js.
+Personal blog built with React, TypeScript, and ghostty-web.
 
 ## Development
 

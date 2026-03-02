@@ -52,8 +52,8 @@ export default defineConfig({
             if (id.includes('react-router')) {
               return 'vendor-router'
             }
-            if (id.includes('xterm')) {
-              return 'vendor-xterm'
+            if (id.includes('ghostty')) {
+              return 'vendor-ghostty'
             }
             // Other vendor code
             return 'vendor'
@@ -90,13 +90,8 @@ export default defineConfig({
   },
   // Optimize dependencies
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      '@xterm/xterm',
-      '@xterm/addon-fit',
-      '@xterm/addon-image',
-    ],
+    include: ['react', 'react-dom'],
+    exclude: ['ghostty-web'],
   },
   test: {
     include: ['src/**/*.test.ts'],
