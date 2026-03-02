@@ -11,7 +11,6 @@ import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
 import { overlayPath, entryOverlayPath } from '../overlays'
-import { perf } from '../utils/perf'
 import * as vfs from '../vfs'
 import type { FsNode } from '../vfs'
 import type { Command } from './types'
@@ -699,70 +698,6 @@ export const commands: Command[] = [
         )
       })
 
-      terminal.writeln('')
-    },
-  },
-  {
-    name: 'perf',
-    description: 'Run terminal performance benchmarks',
-    hidden: true,
-    handler: async (_args, ctx) => {
-      const { terminal } = ctx
-
-      terminal.writeln('')
-      terminal.writeln(
-        `  ${ansi.brightCyan}${ansi.bold}Terminal Performance Benchmarks${ansi.reset}`,
-      )
-      terminal.writeln(`  ${ansi.dim}${'─'.repeat(40)}${ansi.reset}`)
-      terminal.writeln('')
-
-      // Report stored init metrics
-      const stored = perf.getResults()
-      if (stored.length > 0) {
-        terminal.writeln(
-          `  ${ansi.brightWhite}${ansi.bold}Startup Metrics:${ansi.reset}`,
-        )
-        for (const line of perf.formatReport()) {
-          terminal.writeln(line)
-        }
-        terminal.writeln('')
-      }
-
-      // Render speed benchmark
-      terminal.writeln(
-        `  ${ansi.brightWhite}${ansi.bold}Running render benchmark...${ansi.reset}`,
-      )
-
-      const testLines: string[] = []
-      for (let i = 0; i < 500; i++) {
-        testLines.push(
-          `${ansi.dim}${String(i + 1).padStart(4)}${ansi.reset} ${ansi.green}const${ansi.reset} line${i} = ${ansi.yellow}'benchmark test line ${i}'${ansi.reset}`,
-        )
-      }
-      const testData = testLines.join('\r\n') + '\r\n'
-
-      const renderTime = await perf.measureRender(terminal, testData)
-      terminal.writeln(
-        `  ${'Render 500 lines'.padEnd(30)} ${renderTime.toFixed(2)} ms`,
-      )
-      terminal.writeln('')
-
-      // Memory usage
-      const mem = perf.getMemoryUsage()
-      if (mem) {
-        terminal.writeln(
-          `  ${ansi.brightWhite}${ansi.bold}Memory:${ansi.reset}`,
-        )
-        terminal.writeln(
-          `  ${'Heap used'.padEnd(30)} ${(mem.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-        )
-        terminal.writeln(
-          `  ${'Heap total'.padEnd(30)} ${(mem.heapTotal / 1024 / 1024).toFixed(2)} MB`,
-        )
-        terminal.writeln('')
-      }
-
-      terminal.writeln(`  ${ansi.dim}Backend: ghostty-web (WASM)${ansi.reset}`)
       terminal.writeln('')
     },
   },

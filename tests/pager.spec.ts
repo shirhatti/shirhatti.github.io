@@ -1,26 +1,14 @@
 import { test, expect } from '@playwright/test'
 
-/** Type a command into the terminal and press Enter. */
+/** Type a command into the xterm terminal and press Enter. */
 async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
-  // ghostty-web uses a hidden textarea for input
+  // xterm.js uses a hidden textarea for input
   const textarea = page.locator('.terminal-content textarea')
   await textarea.focus()
   for (const ch of cmd) {
     await textarea.press(ch)
   }
   await textarea.press('Enter')
-}
-
-/** Read all text from the ghostty-web canvas terminal buffer. */
-async function getTerminalText(
-  page: import('@playwright/test').Page,
-): Promise<string> {
-  return page.evaluate(
-    () =>
-      (
-        window as unknown as { __getTerminalText?: () => string }
-      ).__getTerminalText?.() ?? '',
-  )
 }
 
 test.describe('Pager (less command)', () => {
@@ -66,7 +54,7 @@ test.describe('Pager (less command)', () => {
 
     // Wait for help output to render, then check terminal has help text
     await page.waitForTimeout(500)
-    const text = await getTerminalText(page)
+    const text = await page.locator('.terminal-content').textContent()
     expect(text).toContain('Available Commands')
   })
 
@@ -131,7 +119,7 @@ test.describe('Pager (less command)', () => {
     // Verify terminal accepts input after deeplink pager close
     await typeCommand(page, 'help')
     await page.waitForTimeout(500)
-    const text = await getTerminalText(page)
+    const text = await page.locator('.terminal-content').textContent()
     expect(text).toContain('Available Commands')
   })
 })

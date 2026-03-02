@@ -1,6 +1,6 @@
 /**
  * Image processing utilities for inline terminal image display
- * Uses the iTerm2 inline image protocol
+ * Uses the iTerm2 inline image protocol via @xterm/addon-image
  */
 
 interface ImagePlaceholder {

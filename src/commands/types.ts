@@ -1,4 +1,4 @@
-import type { Terminal } from 'ghostty-web'
+import type { Terminal } from '@xterm/xterm'
 
 export interface CommandContext {
   terminal: Terminal

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-/** Type a command into the terminal and press Enter. */
+/** Type a command into the xterm terminal and press Enter. */
 async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   const textarea = page.locator('.terminal-content textarea')
   await textarea.focus()
@@ -10,25 +10,13 @@ async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   await textarea.press('Enter')
 }
 
-/** Read all text from the ghostty-web canvas terminal buffer. */
-async function getTerminalText(
-  page: import('@playwright/test').Page,
-): Promise<string> {
-  return page.evaluate(
-    () =>
-      (
-        window as unknown as { __getTerminalText?: () => string }
-      ).__getTerminalText?.() ?? '',
-  )
-}
-
 test.describe('Blog Post Links', () => {
   test('welcome banner displays recent posts', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('.terminal-content', { timeout: 5000 })
     await page.waitForTimeout(1000)
 
-    const text = await getTerminalText(page)
+    const text = await page.locator('.terminal-content').textContent()
     expect(text).toContain('Recent Posts')
     expect(text).toContain('building-a-blog')
   })
