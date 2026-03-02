@@ -4,12 +4,10 @@
   overflow: hidden;
 }
 
-.terminal-content .xterm {
+.terminal-content canvas {
   height: 100%;
-}
-
-.terminal-content .xterm-viewport {
-  overflow-y: auto !important;
+  width: 100%;
+  display: block;
 }
 
 /* Mobile bottom bar - sticky at bottom */
@@ -189,16 +187,6 @@
     margin-bottom: 50px; /* Space for sticky bottom bar */
   }
 
-  .terminal-content .xterm {
-    font-size: 14px !important;
-  }
-
-  /* Make terminal scrollable with touch */
-  .terminal-content .xterm-viewport {
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
   .command-palette {
     bottom: 50px;
   }
@@ -206,10 +194,6 @@
 
 /* Extra small screens */
 @media (max-width: 480px) {
-  .terminal-content .xterm {
-    font-size: 13px !important;
-  }
-
   .mobile-input {
     font-size: 16px; /* Maintain 16px to prevent iOS zoom */
     padding: 10px 12px;

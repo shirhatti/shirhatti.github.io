@@ -18,6 +18,7 @@ import {
   entryOverlayPath,
   type OverlayState,
 } from '../../overlays'
+import { OSC8LinkProvider } from 'ghostty-web'
 import './Terminal.css'
 
 function getWelcomeBanner(): string {
@@ -46,7 +47,7 @@ function getWelcomeBanner(): string {
 export function Terminal() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mobileInputRef = useRef<HTMLInputElement>(null)
-  const { getTerminal } = useTerminal(containerRef)
+  const { getTerminal, ready } = useTerminal(containerRef)
   const navigate = useNavigate()
   const location = useLocation()
   const [showCommandPalette, setShowCommandPalette] = useState(false)
@@ -425,20 +426,40 @@ export function Terminal() {
 
   // Initialize terminal once
   useEffect(() => {
+    if (!ready) return
     const term = getTerminal()
     if (!term) return
 
-    // Set up OSC 8 link handler to run `less <slug>` on click or open external links
-    term.options.linkHandler = {
-      activate(_event: MouseEvent, uri: string) {
-        const match = uri.match(/#\/post\/(.+)$/)
-        if (match) {
-          runCommandRef.current(`less ${match[1]}`)
-        } else if (uri.startsWith('http') || uri.startsWith('mailto:')) {
-          window.open(uri, '_blank', 'noopener,noreferrer')
-        }
+    // Set up OSC 8 link provider for clickable hyperlinks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const osc8Provider = new OSC8LinkProvider(term as any)
+    // Wrap the provider to inject our custom activate handler
+    term.registerLinkProvider({
+      provideLinks(y, callback) {
+        osc8Provider.provideLinks(y, (links) => {
+          if (!links) {
+            callback(undefined)
+            return
+          }
+          const wrapped = links.map((link) => ({
+            ...link,
+            activate: () => {
+              const uri = link.text
+              const postMatch = uri.match(/#\/post\/(.+)$/)
+              if (postMatch) {
+                runCommandRef.current(`less ${postMatch[1]}`)
+              } else if (uri.startsWith('http') || uri.startsWith('mailto:')) {
+                window.open(uri, '_blank', 'noopener,noreferrer')
+              }
+            },
+          }))
+          callback(wrapped)
+        })
       },
-    }
+      dispose() {
+        osc8Provider.dispose()
+      },
+    })
 
     term.write(getWelcomeBanner())
 
@@ -537,7 +558,7 @@ export function Terminal() {
       dataDisposable.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getTerminal])
+  }, [ready, getTerminal])
 
   // Auto-focus mobile input on mount
   useEffect(() => {

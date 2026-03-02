@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-/** Type a command into the xterm terminal and press Enter. */
+/** Type a command into the terminal and press Enter. */
 async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   const textarea = page.locator('.terminal-content textarea')
   await textarea.focus()

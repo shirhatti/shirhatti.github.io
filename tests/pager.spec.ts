@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
-/** Type a command into the xterm terminal and press Enter. */
+/** Type a command into the terminal and press Enter. */
 async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
-  // xterm.js uses a hidden textarea for input
+  // ghostty-web uses a hidden textarea for input
   const textarea = page.locator('.terminal-content textarea')
   await textarea.focus()
   for (const ch of cmd) {

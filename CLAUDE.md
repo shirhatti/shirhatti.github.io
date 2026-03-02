@@ -23,7 +23,9 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 - `posts/YYYY/MM/DD-slug.md` — blog posts with YAML frontmatter
 - `src/commands/registry.ts` — all terminal commands (help, cat, less, ls, whoami, stats, etc.)
 - `src/commands/types.ts` — Command type definition
-- `src/components/Terminal/Terminal.tsx` — xterm.js terminal, input handling, tab completion, welcome banner
+- `src/components/Terminal/Terminal.tsx` — ghostty-web terminal, input handling, tab completion, welcome banner
+- `src/components/Terminal/useTerminal.ts` — terminal initialization hook (WASM init, fit-to-container, resize)
+- `src/utils/perf.ts` — performance benchmarking utilities
 - `src/overlays/index.ts` — overlay registry, route matching, lazy loading (infrastructure)
 - `src/overlays/pager.ts` — pager overlay entry (route, resolver, component loader)
 - `src/components/Pager/Pager.tsx` — HTML pager for `less` command
