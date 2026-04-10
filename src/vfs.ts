@@ -1,7 +1,7 @@
 import manifest from 'virtual:vfs-manifest'
 import type { VfsManifestEntry } from '../vite-plugin-vfs-manifest'
 import { parseFrontMatter } from './utils/frontmatter'
-import type { Post } from './data/types'
+import type { Content, MarkdownContent, AssetContent } from './data/types'
 
 // Lazy content loaders — content is fetched only on readFile()
 const contentLoaders = import.meta.glob('/posts/**/*.md', {
@@ -16,6 +16,16 @@ const imageFiles = import.meta.glob('/posts/**/*.{png,jpg,jpeg,gif,webp,svg}', {
   import: 'default',
   eager: true,
 }) as Record<string, string>
+
+// Asset URLs for non-markdown content files
+const assetUrls = import.meta.glob(
+  '/posts/**/*.{png,jpg,jpeg,gif,webp,svg,pdf,html}',
+  {
+    query: '?url',
+    import: 'default',
+    eager: true,
+  },
+) as Record<string, string>
 
 export interface FsNode {
   name: string
@@ -116,14 +126,26 @@ export function readdir(path: string): FsNode[] {
 }
 
 /**
- * Load file content lazily and return a Post object.
+ * Load file content lazily and return a Content object.
  * Returns null if the path is not a file or has no content loader.
  */
-export async function readFile(path: string): Promise<Post | null> {
+export async function readFile(path: string): Promise<Content | null> {
   const node = stat(path)
   if (!node || node.type !== 'file' || !node.entry) return null
 
-  const loader = contentLoaders[node.entry.path]
+  const entry = node.entry
+
+  if (entry.extension === '.md') {
+    return readMarkdownFile(entry)
+  }
+
+  return readAssetFile(entry)
+}
+
+async function readMarkdownFile(
+  entry: VfsManifestEntry,
+): Promise<MarkdownContent | null> {
+  const loader = contentLoaders[entry.path]
   if (!loader) return null
 
   const raw = (await loader()) as string
@@ -136,8 +158,8 @@ export async function readFile(path: string): Promise<Post | null> {
     .trim()
 
   // Collect images for this post
-  const { slug, meta } = node.entry
-  const parts = node.entry.path.split('/')
+  const { slug, meta } = entry
+  const parts = entry.path.split('/')
   const year = parts[parts.length - 3]
   const month = parts[parts.length - 2]
   const imgDir = `/posts/${year}/${month}/${slug}/`
@@ -149,6 +171,7 @@ export async function readFile(path: string): Promise<Post | null> {
   }
 
   return {
+    type: 'markdown',
     slug,
     title: meta.title,
     date: meta.date,
@@ -159,13 +182,30 @@ export async function readFile(path: string): Promise<Post | null> {
   }
 }
 
+function readAssetFile(entry: VfsManifestEntry): AssetContent | null {
+  const url = assetUrls[entry.path]
+  if (!url) return null
+
+  const { slug, meta } = entry
+  return {
+    type: 'asset',
+    slug,
+    title: meta.title,
+    date: meta.date,
+    tags: meta.tags,
+    excerpt: meta.excerpt,
+    src: url,
+    extension: entry.extension,
+  }
+}
+
 /** Find a manifest entry by slug (for overlay deep-link resolution). */
 export function findBySlug(slug: string): VfsManifestEntry | undefined {
   return manifest.find((e) => e.slug === slug)
 }
 
-/** Load a post by slug. Combines findBySlug + readFile. */
-export async function readBySlug(slug: string): Promise<Post | null> {
+/** Load content by slug. Combines findBySlug + readFile. */
+export async function readBySlug(slug: string): Promise<Content | null> {
   const entry = findBySlug(slug)
   if (!entry) return null
   return readFile(HOME + entry.path)

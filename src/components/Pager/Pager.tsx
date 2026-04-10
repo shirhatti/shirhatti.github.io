@@ -1,10 +1,10 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import type { Post } from '../../data/types'
+import type { MarkdownContent } from '../../data/types'
 import { renderMarkdown } from '../../utils/markdown'
 import './Pager.css'
 
 interface PagerProps {
-  post: Post
+  post: MarkdownContent
   onClose: () => void
 }
 

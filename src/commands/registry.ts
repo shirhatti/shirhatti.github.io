@@ -326,28 +326,40 @@ export const commands: Command[] = [
         return
       }
 
-      const post = await vfs.readFile(resolved)
-      if (!post) {
+      const content = await vfs.readFile(resolved)
+      if (!content) {
         terminal.writeln('')
         terminal.writeln(formatError(`cat: '${args[0]}': Not a readable file`))
         terminal.writeln('')
         return
       }
 
-      if (Object.keys(post.images).length > 0) {
+      if (content.type !== 'markdown') {
+        terminal.writeln('')
+        terminal.writeln(
+          `  ${ansi.brightWhite}${content.title}${ansi.reset} ${ansi.dim}(${content.extension})${ansi.reset}`,
+        )
+        terminal.writeln(
+          formatDim(`  Binary file — use less to view in an overlay`),
+        )
+        terminal.writeln('')
+        return
+      }
+
+      if (Object.keys(content.images).length > 0) {
         const processedContent = await processImagesForTerminal(
-          post.content,
-          post.images,
+          content.content,
+          content.images,
           terminal.cols,
         )
         terminal.write(
           formatPostAsBat(
-            { ...post, content: processedContent },
+            { ...content, content: processedContent },
             { cols: terminal.cols },
           ),
         )
       } else {
-        terminal.write(formatPostAsBat(post, { cols: terminal.cols }))
+        terminal.write(formatPostAsBat(content, { cols: terminal.cols }))
       }
     },
   },
@@ -395,16 +407,27 @@ export const commands: Command[] = [
         return
       }
 
-      const post = await vfs.readFile(resolved)
-      if (!post) {
+      const content = await vfs.readFile(resolved)
+      if (!content) {
         terminal.writeln('')
         terminal.writeln(formatError(`less: '${args[0]}': Not a readable file`))
         terminal.writeln('')
         return
       }
 
-      navigate(overlayPath('pager', { slug: post.slug }))
-      if (openOverlay) return openOverlay('pager', { post })
+      if (content.type !== 'markdown') {
+        terminal.writeln('')
+        terminal.writeln(
+          formatError(
+            `less: '${args[0]}': No overlay registered for ${content.extension} files`,
+          ),
+        )
+        terminal.writeln('')
+        return
+      }
+
+      navigate(overlayPath('pager', { slug: content.slug }))
+      if (openOverlay) return openOverlay('pager', { post: content })
     },
   },
   {
