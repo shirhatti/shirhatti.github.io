@@ -1,6 +1,14 @@
+.terminal-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  overflow: hidden;
+}
+
 .terminal-content {
   flex: 1;
-  padding: 8px;
   overflow: hidden;
 }
 
@@ -184,9 +192,9 @@
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-  .terminal-content {
+  .terminal-wrapper {
     padding: 6px;
-    margin-bottom: 50px; /* Space for sticky bottom bar */
+    padding-bottom: 56px; /* 6px visual + 50px for sticky bottom bar */
   }
 
   .terminal-content .xterm {

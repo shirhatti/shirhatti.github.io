@@ -560,14 +560,7 @@ export function Terminal() {
 
   return (
     <>
-      <div
-        style={{
-          position: 'relative',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+      <div className="terminal-wrapper">
         <div
           ref={containerRef}
           className="terminal-content"
