@@ -54,7 +54,8 @@ export default function vfsManifest(options: VfsManifestOptions): Plugin {
         const vfsPath = '/' + file.split('\\').join('/')
         const filename = posix.basename(vfsPath)
         const ext = posix.extname(filename)
-        const slug = filename.replace(/^\d+-/, '').replace(ext, '')
+        const nameNoPrefix = filename.replace(/^\d+-/, '')
+        const slug = nameNoPrefix.slice(0, -ext.length)
 
         const { year, month, day } = deriveDateFromPath(vfsPath, filename)
         const fileDate = `${year}-${month}-${day}`
@@ -102,7 +103,8 @@ export default function vfsManifest(options: VfsManifestOptions): Plugin {
 
           const vfsPath = '/' + contentPath.split('\\').join('/')
           const ext = posix.extname(contentFilename)
-          const slug = contentFilename.replace(/^\d+-/, '').replace(ext, '')
+          const nameNoPrefix = contentFilename.replace(/^\d+-/, '')
+          const slug = nameNoPrefix.slice(0, -ext.length)
 
           const { year, month, day } = deriveDateFromPath(
             vfsPath,
