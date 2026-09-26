@@ -27,8 +27,6 @@ const overlays: Record<string, OverlayEntry> = {
   pager,
 }
 
-export const overlayRoutes = Object.values(overlays).map((o) => o.route)
-
 /** Return an overlay path for a manifest entry, or null if no overlay handles it. */
 export function entryOverlayPath(entry: VfsManifestEntry): string | null {
   const ext = entry.path.slice(entry.path.lastIndexOf('.'))

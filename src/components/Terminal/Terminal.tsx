@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState, Suspense } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
 import { useTerminal } from './useTerminal'
+import { getHashPath, navigate } from '../../hashLocation'
 import { commands, findCommand } from '../../commands'
 import type { CommandContext } from '../../commands'
 import {
@@ -47,8 +47,6 @@ export function Terminal() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mobileInputRef = useRef<HTMLInputElement>(null)
   const { getTerminal } = useTerminal(containerRef)
-  const navigate = useNavigate()
-  const location = useLocation()
   const [showCommandPalette, setShowCommandPalette] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [overlay, setOverlay] = useState<OverlayState | null>(null)
@@ -58,14 +56,12 @@ export function Terminal() {
   const inputBuffer = useRef('')
   const historyRef = useRef<string[]>([])
   const historyIndex = useRef(-1)
-  const navigateRef = useRef(navigate)
   const cwdRef = useRef(vfs.HOME)
   const tabCompletionState = useRef<{
     matches: string[]
     currentIndex: number
     originalInput: string
   } | null>(null)
-  navigateRef.current = navigate
 
   // Detect mobile device
   useEffect(() => {
@@ -110,7 +106,7 @@ export function Terminal() {
       overlayResolveRef.current()
       overlayResolveRef.current = null
     }
-  }, [getTerminal, navigate])
+  }, [getTerminal])
 
   // Re-focus terminal after overlay is removed from the DOM
   useEffect(() => {
@@ -292,7 +288,7 @@ export function Terminal() {
 
       const ctx: CommandContext = {
         terminal: term,
-        navigate: navigateRef.current,
+        navigate,
         cwd: cwdRef.current,
         setCwd: (path: string) => {
           cwdRef.current = path
@@ -516,7 +512,7 @@ export function Terminal() {
     })
 
     // If we loaded directly to an overlay URL, open it
-    const overlayMatch = matchOverlayRoute(location.pathname)
+    const overlayMatch = matchOverlayRoute(getHashPath())
     if (overlayMatch) {
       term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
       term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
