@@ -10,6 +10,30 @@ async function typeCommand(page: import('@playwright/test').Page, cmd: string) {
   await textarea.press('Enter')
 }
 
+/** Click the first terminal row containing `text`, on that text. */
+async function clickTerminalText(
+  page: import('@playwright/test').Page,
+  text: string,
+) {
+  const point = await page.evaluate((needle) => {
+    const rows = [...document.querySelectorAll('.xterm-rows > div')]
+    const row = rows.find((r) => r.textContent?.includes(needle))
+    if (!row?.textContent) return null
+    // Measure the rendered text, not the full-width row div
+    const range = document.createRange()
+    range.selectNodeContents(row)
+    const rect = range.getBoundingClientRect()
+    const charWidth = rect.width / row.textContent.length
+    const col = row.textContent.indexOf(needle) + needle.length / 2
+    return { x: rect.left + charWidth * col, y: rect.top + rect.height / 2 }
+  }, text)
+  if (!point) throw new Error(`'${text}' not found in terminal`)
+  // xterm only activates a link after hovering it
+  await page.mouse.move(point.x, point.y)
+  await page.waitForTimeout(200)
+  await page.mouse.click(point.x, point.y)
+}
+
 async function terminalText(page: import('@playwright/test').Page) {
   await page.waitForTimeout(500)
   return (await page.locator('.terminal-content').textContent()) ?? ''
@@ -93,6 +117,24 @@ test.describe('Demos (./demos/<name>)', () => {
     const text = await terminalText(page)
     expect(text).toContain('Demos:')
     expect(text).toContain('./demos/game-of-life')
+  })
+
+  test('clicking banner links opens overlays in place, not a new tab', async ({
+    page,
+    context,
+  }) => {
+    let newTabs = 0
+    context.on('page', () => newTabs++)
+
+    await clickTerminalText(page, './demos/game-of-life')
+    await expect(page.locator('.demo-overlay')).toBeVisible({ timeout: 3000 })
+    await page.locator('.demo-close-btn').click()
+    await expect(page.locator('.demo-overlay')).not.toBeVisible()
+
+    await clickTerminalText(page, 'building-a-blog')
+    await expect(page.locator('.pager-overlay')).toBeVisible({ timeout: 3000 })
+
+    expect(newTabs).toBe(0)
   })
 
   test('deeplink opens the demo', async ({ page }) => {

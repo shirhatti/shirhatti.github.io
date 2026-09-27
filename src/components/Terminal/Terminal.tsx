@@ -470,12 +470,24 @@ export function Terminal() {
     const term = getTerminal()
     if (!term) return
 
-    // Set up OSC 8 link handler to run `less <slug>` on click or open external links
+    // OSC 8 link handler: links to this site's overlays (posts, demos) run the
+    // matching command in place; everything else opens in a new tab
     term.options.linkHandler = {
       activate(_event: MouseEvent, uri: string) {
-        const match = uri.match(/#\/post\/(.+)$/)
-        if (match) {
-          runCommandRef.current(`less ${match[1]}`)
+        const url = new URL(uri, window.location.href)
+        const sameSite =
+          url.origin === window.location.origin &&
+          url.pathname === window.location.pathname
+        const overlayMatch =
+          sameSite && url.hash.startsWith('#/')
+            ? matchOverlayRoute(url.hash.slice(1))
+            : null
+        if (overlayMatch) {
+          runCommandRef.current(
+            [overlayMatch.command, overlayMatch.displayArg]
+              .filter(Boolean)
+              .join(' '),
+          )
         } else if (uri.startsWith('http') || uri.startsWith('mailto:')) {
           window.open(uri, '_blank', 'noopener,noreferrer')
         }
