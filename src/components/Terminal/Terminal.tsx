@@ -1,4 +1,11 @@
-import { useRef, useEffect, useCallback, useState, Suspense } from 'react'
+import {
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useState,
+  Suspense,
+} from 'react'
 import { useTerminal } from './useTerminal'
 import { getHashPath, navigate } from '../../hashLocation'
 import { commands, findCommand } from '../../commands'
@@ -297,7 +304,7 @@ export function Terminal() {
         setInputInterceptor: (handler) => {
           inputInterceptorRef.current = handler
         },
-        openOverlay: openOverlayRef.current,
+        openOverlay,
       }
 
       term.writeln('')
@@ -341,7 +348,7 @@ export function Terminal() {
         mobileInputRef.current.value = ''
       }
     },
-    [getTerminal, writePrompt],
+    [getTerminal, writePrompt, openOverlay],
   )
 
   const runCommand = useCallback(
@@ -364,21 +371,16 @@ export function Terminal() {
     [getTerminal, executeCommand],
   )
 
-  // Keep openOverlay ref stable for the context
-  const openOverlayRef = useRef(openOverlay)
-  openOverlayRef.current = openOverlay
-
-  // Keep executeCommand ref stable for the onData listener
+  // Stable refs to the latest callbacks, for the onData and link handlers
+  // registered once at mount
   const executeRef = useRef(executeCommand)
-  executeRef.current = executeCommand
-
-  // Keep runCommand ref stable for the link handler
   const runCommandRef = useRef(runCommand)
-  runCommandRef.current = runCommand
-
-  // Keep handleTabCompletion ref stable for the onData listener
   const handleTabCompletionRef = useRef(handleTabCompletion)
-  handleTabCompletionRef.current = handleTabCompletion
+  useLayoutEffect(() => {
+    executeRef.current = executeCommand
+    runCommandRef.current = runCommand
+    handleTabCompletionRef.current = handleTabCompletion
+  })
 
   // Mobile input handler
   const handleMobileInput = useCallback(
@@ -518,9 +520,7 @@ export function Terminal() {
       term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
       overlayMatch.loadProps().then((props) => {
         if (props) {
-          openOverlayRef
-            .current(overlayMatch.name, props)
-            .then(() => writePrompt())
+          openOverlay(overlayMatch.name, props).then(() => writePrompt())
         } else {
           writePrompt()
         }
