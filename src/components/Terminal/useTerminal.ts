@@ -13,10 +13,15 @@ const getFontSize = () => {
   return 14
 }
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
 const getTerminalOptions = () => ({
-  cursorBlink: true,
+  cursorBlink: !prefersReducedMotion(),
   cursorStyle: 'block' as const,
-  fontFamily: '"Fira Code", "Cascadia Code", "SF Mono", Menlo, monospace',
+  fontFamily:
+    '"Fira Code", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace',
   fontSize: getFontSize(),
   lineHeight: 1.2,
   allowTransparency: false,
