@@ -29,13 +29,14 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 - `src/components/Pager/Pager.tsx` — HTML pager for `less` command
 - `src/components/TerminalWindow/` — window chrome UI
 - `src/utils/ansi.ts` — ANSI escape codes, formatLink, shared `identity` constant (header box + contact info)
-- `src/utils/cat.ts` — bat-style post formatter with syntax highlighting, word wrap, grep output
+- `src/utils/cat.ts` — bat-style post formatter with syntax highlighting and word wrap
 - `src/utils/cat.test.ts` — unit tests for cat.ts (42 tests)
 - `src/utils/stats.ts` — blog statistics calculations
 - `src/utils/fuzzy.ts` — fuzzy matching for command/post suggestions
 - `src/utils/frontmatter.ts` — YAML frontmatter parser
 - `src/utils/image.ts` — iTerm2 inline image protocol support
-- `src/data/posts.ts` — glob-imports posts from `posts/` directory
+- `src/vfs.ts` — virtual filesystem; lazy-loads posts from `posts/` via a build-time manifest
+- `src/hashLocation.ts` — minimal hash routing (read path, navigate)
 
 ## Adding an Overlay
 

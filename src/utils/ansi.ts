@@ -28,8 +28,6 @@ export const ansi = {
 } as const
 
 // Optimized inline helpers - reduce function call overhead
-export const bold = (t: string) => `${B}${t}${R}`
-export const color = (c: keyof typeof ansi, t: string) => `${ansi[c]}${t}${R}`
 export const formatHeader = (t: string) => `${B}${ansi.cyan}${t}${R}`
 export const formatError = (t: string) => `${ansi.red}${t}${R}`
 export const formatDim = (t: string) => `${D}${t}${R}`

@@ -1,2 +1,2 @@
 export { commands, findCommand } from './registry'
-export type { Command, CommandContext } from './types'
+export type { CommandContext } from './types'

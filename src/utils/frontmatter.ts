@@ -3,7 +3,7 @@
  * Handles the subset of YAML we need (strings and arrays)
  */
 
-export interface FrontMatter {
+interface FrontMatter {
   title: string
   date: string
   tags: string[]
