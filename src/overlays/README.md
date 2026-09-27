@@ -2,7 +2,7 @@
 
 Overlays are full-screen React components that cover the terminal. A command opens an overlay, and pressing `q`/`Escape` closes it and returns to the prompt. The pager (`less`) is the first overlay.
 
-Adding a new overlay requires **no changes** to `Terminal.tsx` or the overlay infrastructure. Routing and deeplinking are derived automatically from the overlay entry.
+Adding a new overlay requires **no changes** to `Terminal.tsx`, `router.tsx`, or the overlay infrastructure. Routing and deeplinking are derived automatically from the overlay entry.
 
 ## Steps
 
@@ -94,7 +94,7 @@ if (openOverlay) return openOverlay('myOverlay', { id: 'foo' })
 
 ## What you get for free
 
-- **Routing**: `/#/thing/foo` is matched automatically from `route`
+- **Routing**: `/#/thing/foo` is registered automatically from `route`
 - **Deeplinking**: visiting that URL opens the overlay directly
 - **Terminal echo**: the deeplink handler prints `thing foo` (from `command` + `displayArg`)
 - **Lazy loading**: the component is code-split into its own chunk

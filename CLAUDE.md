@@ -36,7 +36,6 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 - `src/utils/frontmatter.ts` — YAML frontmatter parser
 - `src/utils/image.ts` — iTerm2 inline image protocol support
 - `src/vfs.ts` — virtual filesystem; lazy-loads posts from `posts/` via a build-time manifest
-- `src/hashLocation.ts` — minimal hash routing (read path, navigate)
 
 ## Adding an Overlay
 
