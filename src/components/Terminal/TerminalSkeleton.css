@@ -1,6 +1,5 @@
 .terminal-skeleton {
   padding: 20px;
-  min-height: 400px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -23,9 +22,9 @@
   width: 200px;
   background: linear-gradient(
     90deg,
-    rgba(0, 255, 0, 0.1) 0%,
-    rgba(0, 255, 0, 0.2) 50%,
-    rgba(0, 255, 0, 0.1) 100%
+    rgba(13, 188, 121, 0.1) 0%,
+    rgba(13, 188, 121, 0.2) 50%,
+    rgba(13, 188, 121, 0.1) 100%
   );
   border-radius: 4px;
   margin-top: 20px;

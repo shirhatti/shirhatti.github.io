@@ -2,10 +2,10 @@
   position: absolute;
   inset: 0;
   z-index: 50;
-  background: #1e1e1e;
+  background: var(--bg-window);
   display: flex;
   flex-direction: column;
-  color: #d4d4d4;
+  color: var(--fg);
 }
 
 /* Header bar */
@@ -14,16 +14,16 @@
   align-items: center;
   gap: 12px;
   padding: 6px 16px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #404040;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-muted);
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #808080;
+  color: var(--fg-dim);
   flex-shrink: 0;
 }
 
 .pager-header .pager-filename {
-  color: #e0e0e0;
+  color: var(--fg-bright);
   font-weight: 600;
 }
 
@@ -49,7 +49,7 @@
   display: none;
   background: none;
   border: none;
-  color: #808080;
+  color: var(--fg-dim);
   font-size: 18px;
   cursor: pointer;
   padding: 8px 12px;
@@ -60,11 +60,11 @@
 }
 
 .pager-close-btn:hover {
-  color: #e0e0e0;
+  color: var(--fg-bright);
 }
 
 .pager-close-btn:focus-visible {
-  outline: 2px solid #4ec9b0;
+  outline: 2px solid var(--accent-alt);
   outline-offset: -2px;
 }
 
@@ -72,8 +72,6 @@
 .pager-scroll {
   flex: 1;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
   overscroll-behavior: contain;
 }
 
@@ -83,6 +81,7 @@
     Cantarell, sans-serif;
   font-size: 16px;
   line-height: 1.7;
+  overflow-wrap: break-word;
   padding: 24px 32px;
   max-width: 780px;
   margin: 0 auto;
@@ -93,9 +92,13 @@
   font-size: 2em;
   font-weight: 700;
   color: #ffffff;
-  border-bottom: 1px solid #404040;
+  border-bottom: 1px solid var(--border-muted);
   padding-bottom: 8px;
   margin: 1.2em 0 0.6em;
+}
+
+.pager-content > h1:first-child {
+  margin-top: 0;
 }
 
 .pager-content h2 {
@@ -110,7 +113,7 @@
 .pager-content h3 {
   font-size: 1.25em;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--fg-bright);
   margin: 1em 0 0.4em;
 }
 
@@ -129,8 +132,8 @@
 
 /* Inline code */
 .pager-content code {
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  background: #2d2d2d;
+  font-family: var(--font-mono);
+  background: var(--bg-panel);
   color: #dcdcaa;
   padding: 2px 6px;
   border-radius: 3px;
@@ -139,7 +142,7 @@
 
 /* Code blocks */
 .pager-content pre {
-  background: #1a1a1a;
+  background: var(--bg-page);
   border: 1px solid #333;
   border-radius: 6px;
   padding: 16px;
@@ -149,7 +152,7 @@
 
 .pager-content pre code {
   background: none;
-  color: #d4d4d4;
+  color: var(--fg);
   padding: 0;
   font-size: 0.85em;
   line-height: 1.5;
@@ -157,7 +160,7 @@
 
 /* Blockquotes */
 .pager-content blockquote {
-  border-left: 3px solid #4ec9b0;
+  border-left: 3px solid var(--accent-alt);
   margin: 1em 0;
   padding: 4px 16px;
   color: #b0b0b0;
@@ -170,7 +173,7 @@
 
 /* Links */
 .pager-content a {
-  color: #4ec9b0;
+  color: var(--accent-alt);
   text-decoration: none;
 }
 
@@ -191,7 +194,7 @@
 
 .pager-content figcaption {
   font-size: 0.85em;
-  color: #808080;
+  color: var(--fg-dim);
   margin-top: 6px;
 }
 
@@ -209,33 +212,35 @@
 /* Horizontal rules */
 .pager-content hr {
   border: none;
-  border-top: 1px solid #404040;
+  border-top: 1px solid var(--border-muted);
   margin: 1.5em 0;
 }
 
 /* Tables */
 .pager-content table {
+  display: block;
+  overflow-x: auto;
   border-collapse: collapse;
-  width: 100%;
+  max-width: 100%;
   margin: 1em 0;
 }
 
 .pager-content th,
 .pager-content td {
-  border: 1px solid #404040;
+  border: 1px solid var(--border-muted);
   padding: 8px 12px;
   text-align: left;
 }
 
 .pager-content th {
-  background: #2d2d2d;
+  background: var(--bg-panel);
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--fg-bright);
 }
 
 /* Strong / emphasis */
 .pager-content strong {
-  color: #e0e0e0;
+  color: var(--fg-bright);
   font-weight: 600;
 }
 
@@ -249,11 +254,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 16px;
-  background: #2d2d2d;
-  border-top: 1px solid #404040;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-muted);
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #808080;
+  color: var(--fg-dim);
   flex-shrink: 0;
 }
 
@@ -263,11 +268,11 @@
 }
 
 .pager-status-bar kbd {
-  background: #404040;
+  background: var(--border-muted);
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 11px;
-  color: #d4d4d4;
+  color: var(--fg);
 }
 
 /* Responsive */
