@@ -21,14 +21,14 @@ Or without nix: install [bun](https://bun.sh/), then `bun install`.
 ## Project Structure
 
 - `posts/YYYY/MM/DD-slug.md` — blog posts with YAML frontmatter
-- `posts/YYYY/MM/DD-slug.html` + `.DD-slug.html.meta.yaml` — standalone HTML demos with sidecar metadata
+- `demos/name.html` + `.name.html.meta.yaml` — standalone HTML demos; mounted as executables at `~/demos/name`, run with `./demos/name`
 - `src/commands/registry.ts` — all terminal commands (help, cat, less, ls, whoami, stats, etc.)
 - `src/commands/types.ts` — Command type definition
 - `src/components/Terminal/Terminal.tsx` — xterm.js terminal, input handling, tab completion, welcome banner
 - `src/overlays/index.ts` — overlay registry, route matching, lazy loading (infrastructure)
 - `src/overlays/pager.ts` — pager overlay entry (route, resolver, component loader)
 - `src/components/Pager/Pager.tsx` — HTML pager for `less` command
-- `src/overlays/demo.ts` — demo overlay entry; `less` on a `.html` post opens it
+- `src/overlays/demo.ts` — demo overlay entry; running a demo path opens it (`runExecutable` in `registry.ts`)
 - `src/components/Demo/Demo.tsx` — sandboxed iframe viewer for standalone HTML demos
 - `src/components/TerminalWindow/` — window chrome UI
 - `src/utils/ansi.ts` — ANSI escape codes, formatLink, shared `identity` constant (header box + contact info)

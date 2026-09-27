@@ -22,8 +22,8 @@ export interface VfsManifestEntry {
 interface VfsManifestOptions {
   /** Glob pattern for markdown files, e.g. 'posts/**\/*.md' */
   pattern: string
-  /** Glob pattern for sidecar metadata files, e.g. 'posts/**\/.*.meta.yaml' */
-  sidecarPattern?: string
+  /** Glob pattern(s) for sidecar metadata files, e.g. 'posts/**\/.*.meta.yaml' */
+  sidecarPattern?: string | string[]
 }
 
 export default function vfsManifest(options: VfsManifestOptions): Plugin {
@@ -106,11 +106,15 @@ export default function vfsManifest(options: VfsManifestOptions): Plugin {
           const nameNoPrefix = contentFilename.replace(/^\d+-/, '')
           const slug = nameNoPrefix.slice(0, -ext.length)
 
-          const { year, month, day } = deriveDateFromPath(
-            vfsPath,
-            contentFilename,
-          )
-          const fileDate = `${year}-${month}-${day}`
+          // Only dated paths (/posts/YYYY/MM/DD-slug.ext) carry a date fallback
+          let fileDate = ''
+          if (/^\/posts\/\d{4}\/\d{2}\/\d{2}-/.test(vfsPath)) {
+            const { year, month, day } = deriveDateFromPath(
+              vfsPath,
+              contentFilename,
+            )
+            fileDate = `${year}-${month}-${day}`
+          }
 
           entries.push({
             path: vfsPath,

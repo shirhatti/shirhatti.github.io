@@ -19,7 +19,7 @@ const imageFiles = import.meta.glob('/posts/**/*.{png,jpg,jpeg,gif,webp,svg}', {
 
 // Asset URLs for non-markdown content files
 const assetUrls = import.meta.glob(
-  '/posts/**/*.{png,jpg,jpeg,gif,webp,svg,pdf,html}',
+  ['/posts/**/*.{png,jpg,jpeg,gif,webp,svg,pdf,html}', '/demos/*.html'],
   {
     query: '?url',
     import: 'default',
@@ -32,9 +32,20 @@ export interface FsNode {
   type: 'file' | 'dir'
   children: Map<string, FsNode>
   entry?: VfsManifestEntry
+  /** Runnable by path (./demos/name) — standalone HTML demos */
+  executable?: boolean
 }
 
 export const HOME = '/home/visitor'
+
+/** Demos are standalone HTML files in /demos/, mounted as executables. */
+export function isDemo(entry: VfsManifestEntry): boolean {
+  return entry.path.startsWith('/demos/') && entry.extension === '.html'
+}
+
+function isPost(entry: VfsManifestEntry): boolean {
+  return entry.path.startsWith('/posts/')
+}
 
 function mkdirp(root: FsNode, path: string): FsNode {
   const parts = path.split('/').filter(Boolean)
@@ -56,11 +67,15 @@ function buildTree(): FsNode {
   // Create home directory
   mkdirp(root, HOME)
 
-  // Mount each manifest entry under ~/posts/...
+  // Mount each manifest entry under ~/posts/... or ~/demos/...
   for (const entry of manifest) {
     // entry.path = '/posts/2016/04/11-building-a-blog.md'
     // mount at /home/visitor/posts/2016/04/11-building-a-blog.md
-    const vfsPath = HOME + entry.path
+    // Demos drop their extension: /demos/game-of-life.html → ~/demos/game-of-life
+    const executable = isDemo(entry)
+    const vfsPath =
+      HOME +
+      (executable ? entry.path.slice(0, -entry.extension.length) : entry.path)
     const parts = vfsPath.split('/').filter(Boolean)
     const filename = parts.pop()!
     const dir = mkdirp(root, '/' + parts.join('/'))
@@ -69,6 +84,7 @@ function buildTree(): FsNode {
       type: 'file',
       children: new Map(),
       entry,
+      executable,
     })
   }
 
@@ -199,23 +215,41 @@ function readAssetFile(entry: VfsManifestEntry): AssetContent | null {
   }
 }
 
-/** Find a manifest entry by slug (for overlay deep-link resolution). */
+/** Find a post by slug (for overlay deep-link resolution). */
 export function findBySlug(slug: string): VfsManifestEntry | undefined {
-  return manifest.find((e) => e.slug === slug)
+  return manifest.find((e) => isPost(e) && e.slug === slug)
 }
 
-/** Load content by slug. Combines findBySlug + readFile. */
+/** Load post content by slug. Combines findBySlug + readFile. */
 export async function readBySlug(slug: string): Promise<Content | null> {
   const entry = findBySlug(slug)
   if (!entry) return null
   return readFile(HOME + entry.path)
 }
 
-/** All manifest entries sorted by date descending (for welcome banner, etc). */
+/** VFS path of a demo executable, e.g. '/home/visitor/demos/game-of-life'. */
+export function demoPath(slug: string): string {
+  return `${HOME}/demos/${slug}`
+}
+
+/** Find a demo by slug. */
+export function findDemo(slug: string): VfsManifestEntry | undefined {
+  return manifest.find((e) => isDemo(e) && e.slug === slug)
+}
+
+/** All posts sorted by date descending (for welcome banner, etc). */
 export function allEntries(): VfsManifestEntry[] {
-  return [...manifest].sort(
-    (a, b) => new Date(b.meta.date).getTime() - new Date(a.meta.date).getTime(),
-  )
+  return manifest
+    .filter(isPost)
+    .sort(
+      (a, b) =>
+        new Date(b.meta.date).getTime() - new Date(a.meta.date).getTime(),
+    )
+}
+
+/** All demos, alphabetically. */
+export function allDemos(): VfsManifestEntry[] {
+  return manifest.filter(isDemo).sort((a, b) => a.slug.localeCompare(b.slug))
 }
 
 /**

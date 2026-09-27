@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTerminal } from './useTerminal'
-import { commands, findCommand } from '../../commands'
+import { commands, findCommand, runExecutable } from '../../commands'
 import type { CommandContext } from '../../commands'
 import {
   formatPrompt,
@@ -48,10 +48,32 @@ function getWelcomeBanner(): string {
       return `    ${ansi.dim}${idx + 1}. ${name} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`
     }),
     '',
+    ...demoLines(),
     `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
     '',
     '',
   ].join('\r\n')
+}
+
+function demoLines(): string[] {
+  const demos = vfs.allDemos()
+  if (demos.length === 0) return []
+  return [
+    `  ${ansi.brightWhite}${ansi.bold}Demos:${ansi.reset}`,
+    '',
+    ...demos.map((entry) => {
+      const cmd = `./demos/${entry.slug}`
+      const overlayLink = entryOverlayPath(entry)
+      const name = overlayLink
+        ? formatLink(
+            `#${overlayLink}`,
+            `${ansi.brightGreen}${cmd}${ansi.reset}`,
+          )
+        : `${ansi.brightGreen}${cmd}${ansi.reset}`
+      return `    ${name} ${ansi.dim}- ${entry.meta.title}${ansi.reset}`
+    }),
+    '',
+  ]
 }
 
 export function Terminal() {
@@ -159,7 +181,9 @@ export function Terminal() {
     let matches: string[] = []
     let prefix = ''
 
-    if (parts.length === 1 && !input.endsWith(' ')) {
+    const typingPath = parts.length === 1 && parts[0].includes('/')
+
+    if (parts.length === 1 && !input.endsWith(' ') && !typingPath) {
       // Complete command name (including aliases)
       prefix = parts[0]
       const commandNames = commands.map((c) => c.name)
@@ -173,7 +197,7 @@ export function Terminal() {
       prefix = input.endsWith(' ') ? '' : lastPart
 
       // Commands that take file/directory path arguments
-      if (['cat', 'less', 'cd', 'ls', 'tree'].includes(cmdName)) {
+      if (typingPath || ['cat', 'less', 'cd', 'ls', 'tree'].includes(cmdName)) {
         // Resolve the partial path to find completions
         const cwd = cwdRef.current
         let dirPath: string
@@ -315,6 +339,18 @@ export function Terminal() {
       }
 
       term.writeln('')
+
+      // A path in command position runs it (./demos/game-of-life)
+      if (parts[0].includes('/')) {
+        runExecutable(parts[0], ctx).then(() => {
+          writePrompt()
+          if (mobileInputRef.current) {
+            mobileInputRef.current.value = ''
+          }
+        })
+        return
+      }
+
       if (cmd) {
         const result = cmd.handler(args, ctx)
         if (result instanceof Promise) {
@@ -525,7 +561,11 @@ export function Terminal() {
     const overlayMatch = matchOverlayRoute(location.pathname)
     if (overlayMatch) {
       term.write(formatPrompt(vfs.displayPath(cwdRef.current)))
-      term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
+      term.writeln(
+        [overlayMatch.command, overlayMatch.displayArg]
+          .filter(Boolean)
+          .join(' '),
+      )
       overlayMatch.loadProps().then((props) => {
         if (props) {
           openOverlay(overlayMatch.name, props).then(() => writePrompt())
@@ -561,6 +601,7 @@ export function Terminal() {
   }, [isMobile])
 
   const entries = vfs.allEntries()
+  const demos = vfs.allDemos()
 
   return (
     <>
@@ -662,6 +703,22 @@ export function Terminal() {
                     key={entry.slug}
                     onClick={() => {
                       runCommand(`less ${entry.slug}`)
+                      setShowCommandPalette(false)
+                    }}
+                  >
+                    {entry.meta.title}
+                  </button>
+                ))}
+              </div>
+            )}
+            {demos.length > 0 && (
+              <div className="command-palette-section">
+                <div className="command-palette-title">Demos</div>
+                {demos.map((entry) => (
+                  <button
+                    key={entry.slug}
+                    onClick={() => {
+                      runCommand(`./demos/${entry.slug}`)
                       setShowCommandPalette(false)
                     }}
                   >
