@@ -25,6 +25,8 @@ const getTerminalOptions = () => ({
   fontSize: getFontSize(),
   lineHeight: 1.2,
   allowTransparency: false,
+  // Keep all text at WCAG AA contrast (4.5:1) against the background
+  minimumContrastRatio: 4.5,
   theme: {
     background: '#1e1e1e',
     foreground: '#d4d4d4',
@@ -39,7 +41,7 @@ const getTerminalOptions = () => ({
     magenta: '#bc3fbc',
     cyan: '#11a8cd',
     white: '#e5e5e5',
-    brightBlack: '#666666',
+    brightBlack: '#8c8c8c',
     brightRed: '#f14c4c',
     brightGreen: '#23d18b',
     brightYellow: '#f5f543',

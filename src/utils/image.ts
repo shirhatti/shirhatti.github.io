@@ -3,6 +3,8 @@
  * Uses the iTerm2 inline image protocol via @xterm/addon-image
  */
 
+import { ansi } from './ansi'
+
 interface ImagePlaceholder {
   fullMatch: string
   alt: string
@@ -86,8 +88,8 @@ export async function processImagesForTerminal(
     if (!imageUrl) {
       // No matching image found, show fallback
       const fallback = placeholder.alt
-        ? `\x1b[2m[Image: ${placeholder.alt}]\x1b[0m`
-        : `\x1b[2m[Image]\x1b[0m`
+        ? `${ansi.dim}[Image: ${placeholder.alt}]${ansi.reset}`
+        : `${ansi.dim}[Image]${ansi.reset}`
       result = result.replace(placeholder.fullMatch, fallback)
       continue
     }
@@ -95,8 +97,8 @@ export async function processImagesForTerminal(
     const imageData = await fetchImageAsBase64(imageUrl)
     if (!imageData) {
       const fallback = placeholder.alt
-        ? `\x1b[2m[Image: ${placeholder.alt}]\x1b[0m`
-        : `\x1b[2m[Image]\x1b[0m`
+        ? `${ansi.dim}[Image: ${placeholder.alt}]${ansi.reset}`
+        : `${ansi.dim}[Image]${ansi.reset}`
       result = result.replace(placeholder.fullMatch, fallback)
       continue
     }
@@ -108,7 +110,7 @@ export async function processImagesForTerminal(
     )
     // Add dim alt-text caption below the image
     const caption = placeholder.alt
-      ? `\r\n\x1b[2m  ${placeholder.alt}\x1b[0m`
+      ? `\r\n${ansi.dim}  ${placeholder.alt}${ansi.reset}`
       : ''
     result = result.replace(placeholder.fullMatch, sequence + caption)
   }

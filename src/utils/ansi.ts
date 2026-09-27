@@ -1,7 +1,9 @@
 // Minified ANSI codes - using shorter constant names for better treeshaking
 const R = '\x1b[0m' // reset
 const B = '\x1b[1m' // bold
-const D = '\x1b[2m' // dim
+// "dim" maps to bright-black (a theme gray) rather than SGR 2: xterm renders
+// SGR 2 at 50% opacity, which fails WCAG AA contrast on the dark background
+const D = '\x1b[90m' // dim
 
 export const ansi = {
   reset: R,
