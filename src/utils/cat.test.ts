@@ -3,7 +3,7 @@
 import { describe, it, expect } from 'vitest'
 import { ansi } from './ansi'
 import { formatPostAsBat, _internal } from './cat'
-import type { Post } from '../data/types'
+import type { MarkdownContent } from '../data/types'
 
 const {
   wrapAnsi,
@@ -299,7 +299,8 @@ describe('highlightSyntax', () => {
 // ── formatPostAsBat (integration) ──────────────────────────
 
 describe('formatPostAsBat', () => {
-  const post: Post = {
+  const post: MarkdownContent = {
+    type: 'markdown',
     slug: 'test-post',
     title: 'Test Post',
     date: '2025-01-15',
@@ -320,7 +321,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('wraps long lines within cols boundary', () => {
-    const longPost: Post = {
+    const longPost: MarkdownContent = {
       ...post,
       content:
         'This is a very long line that should be wrapped because it exceeds the column width that we have set for the terminal display output',
@@ -334,7 +335,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('renders markdown links as clickable in post content', () => {
-    const linkPost: Post = {
+    const linkPost: MarkdownContent = {
       ...post,
       content: 'Visit [Example](https://example.com) today',
     }
@@ -344,7 +345,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('does not break link syntax across wrapped lines', () => {
-    const linkPost: Post = {
+    const linkPost: MarkdownContent = {
       ...post,
       content:
         'I recommend reading [Jeff Atwood](https://twitter.com/codinghorror) for programming insights',
@@ -356,7 +357,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('wraps every line within cols boundary including lines with links', () => {
-    const linkPost: Post = {
+    const linkPost: MarkdownContent = {
       ...post,
       content:
         "Both [Let's Encrypt](https://letsencrypt.org/) and [Cloudflare](https://www.cloudflare.com/) have recently started offering free Domain Validated certificates for personal websites.",
@@ -369,7 +370,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('wraps real blog content with multiple links within cols', () => {
-    const realPost: Post = {
+    const realPost: MarkdownContent = {
       ...post,
       content:
         "While I don't expect to do any payment processing on my personal blog nor do I serve up any login page, having an SSL issued from a trusted CA will still protect readers of my blog from a [Man-in-the-middle (MITM) attack](https://wikipedia.org/wiki/Man-in-the-middle_attack). Additionally, a huge motivation for me to use SSL was that Google now uses [HTTPS as a ranking signal](https://security.googleblog.com/2014/08/https-as-ranking-signal_6.html).",
@@ -390,7 +391,7 @@ describe('formatPostAsBat', () => {
   })
 
   it('does not wrap iTerm2 image sequences', () => {
-    const imgPost: Post = {
+    const imgPost: MarkdownContent = {
       ...post,
       content:
         '\x1b]1337;File=inline=1;size=100;width=40:base64base64base64base64\x07',

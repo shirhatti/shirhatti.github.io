@@ -37,12 +37,16 @@ function getWelcomeBanner(): string {
     '',
     `  ${ansi.brightWhite}${ansi.bold}Recent Posts:${ansi.reset}`,
     '',
-    ...entries
-      .slice(0, 3)
-      .map(
-        (entry, idx) =>
-          `    ${ansi.dim}${idx + 1}. ${formatLink(`#${entryOverlayPath(entry)}`, `${ansi.brightCyan}${entry.slug}${ansi.reset}`)} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`,
-      ),
+    ...entries.slice(0, 3).map((entry, idx) => {
+      const overlayLink = entryOverlayPath(entry)
+      const name = overlayLink
+        ? formatLink(
+            `#${overlayLink}`,
+            `${ansi.brightCyan}${entry.slug}${ansi.reset}`,
+          )
+        : `${ansi.brightCyan}${entry.slug}${ansi.reset}`
+      return `    ${ansi.dim}${idx + 1}. ${name} ${ansi.dim}(${entry.meta.date}) - ${entry.meta.title}${ansi.reset}`
+    }),
     '',
     `  ${ansi.dim}Type ${ansi.reset}${ansi.brightGreen}help${ansi.reset}${ansi.dim} to get started.${ansi.reset}`,
     '',

@@ -14,8 +14,9 @@ export const pager: OverlayEntry = {
     if (!findBySlug(params.slug)) return null
     return {
       loadProps: async () => {
-        const post = await readBySlug(params.slug)
-        return post ? { post } : null
+        const content = await readBySlug(params.slug)
+        if (!content || content.type !== 'markdown') return null
+        return { post: content }
       },
       displayArg: params.slug,
     }

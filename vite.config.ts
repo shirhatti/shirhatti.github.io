@@ -3,7 +3,13 @@ import react from '@vitejs/plugin-react'
 import vfsManifest from './vite-plugin-vfs-manifest.ts'
 
 export default defineConfig({
-  plugins: [react(), vfsManifest({ pattern: 'posts/**/*.md' })],
+  plugins: [
+    react(),
+    vfsManifest({
+      pattern: 'posts/**/*.md',
+      sidecarPattern: 'posts/**/.*.meta.yaml',
+    }),
+  ],
   server: {
     port: 3000,
   },
