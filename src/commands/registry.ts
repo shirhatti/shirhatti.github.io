@@ -10,7 +10,7 @@ import { formatPostAsBat } from '../utils/cat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
-import { overlayPath, entryOverlayPath } from '../overlays'
+import { overlayPath, entryOverlayPath, overlayForExtension } from '../overlays'
 import * as vfs from '../vfs'
 import type { FsNode } from '../vfs'
 import type { Command } from './types'
@@ -340,7 +340,11 @@ export const commands: Command[] = [
           `  ${ansi.brightWhite}${content.title}${ansi.reset} ${ansi.dim}(${content.extension})${ansi.reset}`,
         )
         terminal.writeln(
-          formatDim(`  Binary file — use less to view in an overlay`),
+          formatDim(
+            overlayForExtension(content.extension)
+              ? `  Binary file — use less to view in an overlay`
+              : `  Binary file — no viewer available`,
+          ),
         )
         terminal.writeln('')
         return
@@ -415,19 +419,21 @@ export const commands: Command[] = [
         return
       }
 
-      if (content.type !== 'markdown') {
+      const extension = content.type === 'markdown' ? '.md' : content.extension
+      const overlay = overlayForExtension(extension)
+      if (!overlay) {
         terminal.writeln('')
         terminal.writeln(
           formatError(
-            `less: '${args[0]}': No overlay registered for ${content.extension} files`,
+            `less: '${args[0]}': No overlay registered for ${extension} files`,
           ),
         )
         terminal.writeln('')
         return
       }
 
-      navigate(overlayPath('pager', { slug: content.slug }))
-      if (openOverlay) return openOverlay('pager', { post: content })
+      navigate(overlayPath(overlay, { slug: content.slug }))
+      if (openOverlay) return openOverlay(overlay, { post: content })
     },
   },
   {
@@ -788,6 +794,7 @@ function getManPage(command: string): ManPage | null {
       synopsis: `${ansi.bold}less${ansi.reset} ${ansi.underline}FILE${ansi.reset}`,
       description: [
         'Open a blog post in the HTML pager with proportional fonts.',
+        'Standalone .html demos open in a sandboxed viewer instead.',
         '',
         'Paths are resolved relative to the current working directory.',
         'The .md extension is optional.',
@@ -806,6 +813,7 @@ function getManPage(command: string): ManPage | null {
       examples: [
         'less 11-building-a-blog.md   Open post in pager',
         'less building-a-blog         Extension is optional',
+        'less game-of-life            Open an interactive demo',
       ],
       seeAlso: ['cat(1)', 'ls(1)'],
     },

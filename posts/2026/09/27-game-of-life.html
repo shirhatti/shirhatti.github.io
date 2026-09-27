@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conway's Game of Life</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1e1e1e;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="board"></canvas>
+    <script>
+      const CELL = 10
+      const canvas = document.getElementById('board')
+      const ctx = canvas.getContext('2d')
+      let cols = 0
+      let rows = 0
+      let grid = new Uint8Array(0)
+      let running = true
+      let drawing = false
+
+      function resize() {
+        const dpr = window.devicePixelRatio || 1
+        canvas.width = canvas.clientWidth * dpr
+        canvas.height = canvas.clientHeight * dpr
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        cols = Math.ceil(canvas.clientWidth / CELL)
+        rows = Math.ceil(canvas.clientHeight / CELL)
+        randomize()
+      }
+
+      function randomize() {
+        grid = new Uint8Array(cols * rows)
+        for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.2
+      }
+
+      function step() {
+        const next = new Uint8Array(cols * rows)
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            let n = 0
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx || dy) {
+                  const nx = (x + dx + cols) % cols
+                  const ny = (y + dy + rows) % rows
+                  n += grid[ny * cols + nx]
+                }
+              }
+            }
+            const alive = grid[y * cols + x]
+            next[y * cols + x] = n === 3 || (alive && n === 2) ? 1 : 0
+          }
+        }
+        grid = next
+      }
+
+      function draw() {
+        ctx.fillStyle = '#1e1e1e'
+        ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight)
+        ctx.fillStyle = '#4ec9b0'
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            if (grid[y * cols + x]) {
+              ctx.fillRect(x * CELL, y * CELL, CELL - 1, CELL - 1)
+            }
+          }
+        }
+      }
+
+      function paint(e) {
+        const rect = canvas.getBoundingClientRect()
+        const x = Math.floor((e.clientX - rect.left) / CELL)
+        const y = Math.floor((e.clientY - rect.top) / CELL)
+        if (x >= 0 && x < cols && y >= 0 && y < rows) {
+          grid[y * cols + x] = 1
+          draw()
+        }
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        drawing = true
+        paint(e)
+      })
+      canvas.addEventListener('pointermove', (e) => drawing && paint(e))
+      window.addEventListener('pointerup', () => (drawing = false))
+      window.addEventListener('keydown', (e) => {
+        if (e.key === ' ') running = !running
+        if (e.key === 'r') randomize()
+        if (e.key === 'c') grid = new Uint8Array(cols * rows)
+        draw()
+      })
+      window.addEventListener('resize', resize)
+
+      let last = 0
+      function loop(t) {
+        if (running && t - last > 80) {
+          step()
+          draw()
+          last = t
+        }
+        requestAnimationFrame(loop)
+      }
+
+      resize()
+      draw()
+      requestAnimationFrame(loop)
+    </script>
+  </body>
+</html>

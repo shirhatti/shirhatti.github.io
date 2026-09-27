@@ -1,0 +1,6 @@
+title: Conway's Game of Life
+date: 2026-09-27
+tags:
+  - demo
+  - canvas
+excerpt: Click or drag to draw cells. Space pauses, r randomizes, c clears.

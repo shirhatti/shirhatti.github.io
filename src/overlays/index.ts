@@ -1,6 +1,7 @@
 import { lazy, type ComponentType } from 'react'
 import type { VfsManifestEntry } from '../../vite-plugin-vfs-manifest'
 import { pager } from './pager'
+import { demo } from './demo'
 
 export interface OverlayProps {
   onClose: () => void
@@ -25,18 +26,23 @@ export interface OverlayEntry {
 
 const overlays: Record<string, OverlayEntry> = {
   pager,
+  demo,
 }
 
 export const overlayRoutes = Object.values(overlays).map((o) => o.route)
 
-/** Return an overlay path for a manifest entry, or null if no overlay handles it. */
-export function entryOverlayPath(entry: VfsManifestEntry): string | null {
-  const ext = entry.path.slice(entry.path.lastIndexOf('.'))
+/** Return the name of the overlay that handles a file extension, if any. */
+export function overlayForExtension(ext: string): string | null {
   for (const [name, o] of Object.entries(overlays)) {
-    if (o.extensions?.includes(ext))
-      return overlayPath(name, { slug: entry.slug })
+    if (o.extensions?.includes(ext)) return name
   }
   return null
+}
+
+/** Return an overlay path for a manifest entry, or null if no overlay handles it. */
+export function entryOverlayPath(entry: VfsManifestEntry): string | null {
+  const name = overlayForExtension(entry.extension)
+  return name ? overlayPath(name, { slug: entry.slug }) : null
 }
 
 export function overlayPath(
