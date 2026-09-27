@@ -10,10 +10,10 @@ import { formatPostAsBat } from '../utils/cat'
 import { calculateStats, getTopTags } from '../utils/stats'
 import { findClosestMatch } from '../utils/fuzzy'
 import { processImagesForTerminal } from '../utils/image'
-import { overlayPath, entryOverlayPath, overlayForExtension } from '../overlays'
+import { overlayPath, entryOverlayPath } from '../overlays'
 import * as vfs from '../vfs'
 import type { FsNode } from '../vfs'
-import type { Command } from './types'
+import type { Command, CommandContext } from './types'
 
 /**
  * Find a command by name or alias
@@ -46,6 +46,34 @@ function resolveFileArg(cwd: string, arg: string): string | null {
   if (entry) return vfs.HOME + entry.path
 
   return null
+}
+
+/**
+ * Run a path typed as a command (e.g. `./demos/game-of-life`).
+ * Demos are the only executables; they open in the sandboxed demo overlay.
+ */
+export async function runExecutable(
+  pathArg: string,
+  ctx: CommandContext,
+): Promise<void> {
+  const { terminal, cwd, navigate, openOverlay } = ctx
+  const resolved = vfs.resolve(cwd, pathArg)
+  const node = vfs.stat(resolved)
+
+  const fail = (msg: string) => {
+    terminal.writeln(formatError(`${pathArg}: ${msg}`))
+    terminal.writeln('')
+  }
+
+  if (!node) return fail('No such file or directory')
+  if (node.type === 'dir') return fail('Is a directory')
+  if (!node.executable) return fail('Permission denied')
+
+  const content = await vfs.readFile(resolved)
+  if (!content || content.type !== 'asset') return fail('Cannot execute')
+
+  navigate(overlayPath('demo', { slug: content.slug }))
+  if (openOverlay) return openOverlay('demo', { post: content })
 }
 
 export const commands: Command[] = [
@@ -84,6 +112,19 @@ export const commands: Command[] = [
             : ''
           terminal.writeln(
             `    ${nameStr.padEnd(25)}${cmd.description}${aliasText}`,
+          )
+        }
+      }
+
+      const demos = vfs.allDemos()
+      if (demos.length > 0) {
+        terminal.writeln('')
+        terminal.writeln(`  ${ansi.bold}${ansi.brightWhite}Demos${ansi.reset}`)
+        for (const demo of demos) {
+          const cmd = `./demos/${demo.slug}`
+          const pad = ' '.repeat(Math.max(1, 16 - cmd.length))
+          terminal.writeln(
+            `    ${ansi.green}${cmd}${ansi.reset}${pad}${demo.meta.title}`,
           )
         }
       }
@@ -249,7 +290,7 @@ export const commands: Command[] = [
           } else if (entry.entry) {
             const { meta } = entry.entry
             const date = `${ansi.dim}${meta.date}${ansi.reset}`
-            const name = `${ansi.brightGreen}${entry.name}${ansi.reset}`
+            const name = `${ansi.brightGreen}${entry.name}${entry.executable ? '*' : ''}${ansi.reset}`
             const title = `${ansi.brightWhite}${meta.title}${ansi.reset}`
             terminal.writeln(`  ${date}  ${name}  ${title}`)
             if (showAll) {
@@ -261,10 +302,12 @@ export const commands: Command[] = [
                   `${' '.repeat(14)}${ansi.dim}[${ansi.reset}${tags}${ansi.dim}]${ansi.reset}`,
                 )
               }
-              const readTime = Math.ceil(meta.wordCount / 200)
-              terminal.writeln(
-                `${' '.repeat(14)}${ansi.dim}${meta.wordCount} words \u2022 ~${readTime} min read${ansi.reset}`,
-              )
+              if (!entry.executable) {
+                const readTime = Math.ceil(meta.wordCount / 200)
+                terminal.writeln(
+                  `${' '.repeat(14)}${ansi.dim}${meta.wordCount} words \u2022 ~${readTime} min read${ansi.reset}`,
+                )
+              }
             }
           }
         }
@@ -273,7 +316,9 @@ export const commands: Command[] = [
           if (entry.type === 'dir') {
             terminal.writeln(`  ${ansi.brightBlue}${entry.name}/${ansi.reset}`)
           } else {
-            terminal.writeln(`  ${ansi.brightGreen}${entry.name}${ansi.reset}`)
+            terminal.writeln(
+              `  ${ansi.brightGreen}${entry.name}${entry.executable ? '*' : ''}${ansi.reset}`,
+            )
           }
         }
       }
@@ -341,8 +386,8 @@ export const commands: Command[] = [
         )
         terminal.writeln(
           formatDim(
-            overlayForExtension(content.extension)
-              ? `  Binary file — use less to view in an overlay`
+            vfs.stat(resolved)?.executable
+              ? `  Executable — run it with ./demos/${content.slug}`
               : `  Binary file — no viewer available`,
           ),
         )
@@ -419,21 +464,21 @@ export const commands: Command[] = [
         return
       }
 
-      const extension = content.type === 'markdown' ? '.md' : content.extension
-      const overlay = overlayForExtension(extension)
-      if (!overlay) {
+      if (content.type !== 'markdown') {
         terminal.writeln('')
         terminal.writeln(
           formatError(
-            `less: '${args[0]}': No overlay registered for ${extension} files`,
+            vfs.stat(resolved)?.executable
+              ? `less: '${args[0]}': Is an executable — run it with ./demos/${content.slug}`
+              : `less: '${args[0]}': No overlay registered for ${content.extension} files`,
           ),
         )
         terminal.writeln('')
         return
       }
 
-      navigate(overlayPath(overlay, { slug: content.slug }))
-      if (openOverlay) return openOverlay(overlay, { post: content })
+      navigate(overlayPath('pager', { slug: content.slug }))
+      if (openOverlay) return openOverlay('pager', { post: content })
     },
   },
   {
@@ -794,7 +839,6 @@ function getManPage(command: string): ManPage | null {
       synopsis: `${ansi.bold}less${ansi.reset} ${ansi.underline}FILE${ansi.reset}`,
       description: [
         'Open a blog post in the HTML pager with proportional fonts.',
-        'Standalone .html demos open in a sandboxed viewer instead.',
         '',
         'Paths are resolved relative to the current working directory.',
         'The .md extension is optional.',
@@ -813,7 +857,6 @@ function getManPage(command: string): ManPage | null {
       examples: [
         'less 11-building-a-blog.md   Open post in pager',
         'less building-a-blog         Extension is optional',
-        'less game-of-life            Open an interactive demo',
       ],
       seeAlso: ['cat(1)', 'ls(1)'],
     },

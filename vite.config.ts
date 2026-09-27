@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     vfsManifest({
       pattern: 'posts/**/*.md',
-      sidecarPattern: 'posts/**/.*.meta.yaml',
+      sidecarPattern: ['posts/**/.*.meta.yaml', 'demos/.*.meta.yaml'],
     }),
   ],
   server: {

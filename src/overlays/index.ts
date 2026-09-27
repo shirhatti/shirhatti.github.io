@@ -15,8 +15,10 @@ export interface OverlayState {
 
 export interface OverlayEntry {
   route: string
+  /** Echoed before displayArg when a deeplink opens the overlay ('' for none) */
   command: string
-  extensions?: string[]
+  /** Manifest entries this overlay displays (used for links in banner/tree) */
+  handles?: (entry: VfsManifestEntry) => boolean
   loader: () => Promise<{ default: ComponentType<OverlayProps> }>
   resolve: (params: Record<string, string>) => {
     loadProps: () => Promise<Record<string, unknown> | null>
@@ -31,18 +33,12 @@ const overlays: Record<string, OverlayEntry> = {
 
 export const overlayRoutes = Object.values(overlays).map((o) => o.route)
 
-/** Return the name of the overlay that handles a file extension, if any. */
-export function overlayForExtension(ext: string): string | null {
-  for (const [name, o] of Object.entries(overlays)) {
-    if (o.extensions?.includes(ext)) return name
-  }
-  return null
-}
-
 /** Return an overlay path for a manifest entry, or null if no overlay handles it. */
 export function entryOverlayPath(entry: VfsManifestEntry): string | null {
-  const name = overlayForExtension(entry.extension)
-  return name ? overlayPath(name, { slug: entry.slug }) : null
+  for (const [name, o] of Object.entries(overlays)) {
+    if (o.handles?.(entry)) return overlayPath(name, { slug: entry.slug })
+  }
+  return null
 }
 
 export function overlayPath(

@@ -58,7 +58,8 @@ import type { OverlayEntry, OverlayProps } from './index'
 
 export const myOverlay: OverlayEntry = {
   route: '/thing/:id',          // becomes a hash route and deeplink
-  command: 'thing',             // echoed in terminal on deeplink open
+  command: 'thing',             // echoed in terminal on deeplink open ('' for none)
+  handles: (entry) => false,    // optional: manifest entries to link to this overlay
   loader: () =>
     import('../components/<Name>/<Name>').then((m) => ({
       default: m.<Name> as unknown as ComponentType<OverlayProps>,
@@ -97,9 +98,10 @@ if (openOverlay) return openOverlay('myOverlay', { id: 'foo' })
 - **Routing**: `/#/thing/foo` is registered automatically from `route`
 - **Deeplinking**: visiting that URL opens the overlay directly
 - **Terminal echo**: the deeplink handler prints `thing foo` (from `command` + `displayArg`)
+- **Links**: `handles` makes the welcome banner and `tree` link matching files to the overlay
 - **Lazy loading**: the component is code-split into its own chunk
 - **Close handling**: `onClose` hides the overlay, navigates to `/`, restores the terminal cursor, and resolves the command promise so the prompt reappears
 
 ## Reference
 
-See `src/overlays/pager.ts` (markdown posts) and `src/overlays/demo.ts` (standalone `.html` demos in a sandboxed iframe). The `extensions` field is how `less` picks an overlay for a file.
+See `src/overlays/pager.ts` (markdown posts, opened by `less`) and `src/overlays/demo.ts` (standalone HTML demos in a sandboxed iframe, opened by running `./demos/<name>`).
