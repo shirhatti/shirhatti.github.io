@@ -102,4 +102,4 @@ if (openOverlay) return openOverlay('myOverlay', { id: 'foo' })
 
 ## Reference
 
-See `src/overlays/pager.ts` for the existing implementation.
+See `src/overlays/pager.ts` (markdown posts) and `src/overlays/demo.ts` (standalone `.html` demos in a sandboxed iframe). The `extensions` field is how `less` picks an overlay for a file.
