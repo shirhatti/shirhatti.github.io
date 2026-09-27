@@ -1,5 +1,5 @@
 import { ansi, formatLink } from './ansi'
-import type { Post } from '../data/types'
+import type { MarkdownContent } from '../data/types'
 
 /* eslint-disable no-control-regex */
 const RE_OSC8_LINK = /\x1b\]8;;([^\x07\x1b]*?)(?:\x07|\x1b\\)/g
@@ -31,7 +31,10 @@ interface BatOptions {
 /**
  * Format a post in bat-style with header and syntax highlighting
  */
-export function formatPostAsBat(post: Post, options: BatOptions = {}): string {
+export function formatPostAsBat(
+  post: MarkdownContent,
+  options: BatOptions = {},
+): string {
   const { showHeader = true, cols = 80 } = options
 
   const lines = post.content.split('\r\n')
