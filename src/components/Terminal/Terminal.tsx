@@ -1,4 +1,11 @@
-import { useRef, useEffect, useCallback, useState, Suspense } from 'react'
+import {
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useState,
+  Suspense,
+} from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTerminal } from './useTerminal'
 import { commands, findCommand } from '../../commands'
@@ -65,7 +72,6 @@ export function Terminal() {
     currentIndex: number
     originalInput: string
   } | null>(null)
-  navigateRef.current = navigate
 
   // Detect mobile device
   useEffect(() => {
@@ -103,14 +109,14 @@ export function Terminal() {
     term.write('\x1b[?25h')
     inputInterceptorRef.current = null
     setOverlay(null)
-    navigate('/')
+    navigateRef.current('/')
 
     // Resolve the promise so writePrompt fires
     if (overlayResolveRef.current) {
       overlayResolveRef.current()
       overlayResolveRef.current = null
     }
-  }, [getTerminal, navigate])
+  }, [getTerminal])
 
   // Re-focus terminal after overlay is removed from the DOM
   useEffect(() => {
@@ -292,7 +298,7 @@ export function Terminal() {
 
       const ctx: CommandContext = {
         terminal: term,
-        navigate: navigateRef.current,
+        navigate: (path) => navigateRef.current(path),
         cwd: cwdRef.current,
         setCwd: (path: string) => {
           cwdRef.current = path
@@ -301,7 +307,7 @@ export function Terminal() {
         setInputInterceptor: (handler) => {
           inputInterceptorRef.current = handler
         },
-        openOverlay: openOverlayRef.current,
+        openOverlay,
       }
 
       term.writeln('')
@@ -345,7 +351,7 @@ export function Terminal() {
         mobileInputRef.current.value = ''
       }
     },
-    [getTerminal, writePrompt],
+    [getTerminal, writePrompt, openOverlay],
   )
 
   const runCommand = useCallback(
@@ -368,21 +374,17 @@ export function Terminal() {
     [getTerminal, executeCommand],
   )
 
-  // Keep openOverlay ref stable for the context
-  const openOverlayRef = useRef(openOverlay)
-  openOverlayRef.current = openOverlay
-
-  // Keep executeCommand ref stable for the onData listener
+  // Stable refs to the latest callbacks, for the onData and link handlers
+  // registered once at mount
   const executeRef = useRef(executeCommand)
-  executeRef.current = executeCommand
-
-  // Keep runCommand ref stable for the link handler
   const runCommandRef = useRef(runCommand)
-  runCommandRef.current = runCommand
-
-  // Keep handleTabCompletion ref stable for the onData listener
   const handleTabCompletionRef = useRef(handleTabCompletion)
-  handleTabCompletionRef.current = handleTabCompletion
+  useLayoutEffect(() => {
+    navigateRef.current = navigate
+    executeRef.current = executeCommand
+    runCommandRef.current = runCommand
+    handleTabCompletionRef.current = handleTabCompletion
+  })
 
   // Mobile input handler
   const handleMobileInput = useCallback(
@@ -522,9 +524,7 @@ export function Terminal() {
       term.writeln(`${overlayMatch.command} ${overlayMatch.displayArg}`)
       overlayMatch.loadProps().then((props) => {
         if (props) {
-          openOverlayRef
-            .current(overlayMatch.name, props)
-            .then(() => writePrompt())
+          openOverlay(overlayMatch.name, props).then(() => writePrompt())
         } else {
           writePrompt()
         }

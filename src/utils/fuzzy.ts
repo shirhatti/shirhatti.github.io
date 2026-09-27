@@ -3,7 +3,7 @@
  * This measures the minimum number of single-character edits (insertions, deletions, substitutions)
  * needed to transform one string into another.
  */
-export function levenshteinDistance(a: string, b: string): number {
+function levenshteinDistance(a: string, b: string): number {
   // Create a matrix to store the distances
   const matrix: number[][] = []
 

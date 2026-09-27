@@ -12,7 +12,7 @@ interface ImagePlaceholder {
 /**
  * Find all markdown image placeholders in content
  */
-export function findImagePlaceholders(content: string): ImagePlaceholder[] {
+function findImagePlaceholders(content: string): ImagePlaceholder[] {
   const regex = /!\[([^\]]*)\]\(([^)]+)\)/g
   const matches: ImagePlaceholder[] = []
   let match: RegExpExecArray | null
